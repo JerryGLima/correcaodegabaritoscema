@@ -1,0 +1,147 @@
+:root { 
+    --primary: #640510; 
+    --success: #28a745; 
+    --danger: #dc3545; 
+    --dark: #1a1a1a; 
+    --light: #f8f9fa; 
+    --warning: #ffc107; 
+    --border: #dee2e6; 
+}
+
+body { 
+    font-family: 'Segoe UI', Tahoma, sans-serif; 
+    background: #e9ecef; 
+    margin: 0; 
+    height: 100vh; 
+    overflow: hidden; 
+}
+
+/* ================= TELA DE LOGIN ================= */
+.login-container { 
+    display: flex; align-items: center; justify-content: center; 
+    height: 100vh; background: #e9ecef; position: absolute; 
+    z-index: 9999; width: 100%; top: 0; left: 0;
+}
+.login-card { 
+    background: white; padding: 40px; border-radius: 8px; 
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 380px; text-align: center; 
+}
+.login-card h2 { color: var(--primary); margin-top: 0; margin-bottom: 5px; font-size: 1.5rem; }
+.login-card p { color: #666; font-size: 0.9rem; margin-bottom: 25px; }
+.login-input { 
+    width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ccc; 
+    border-radius: 4px; box-sizing: border-box; font-size: 1rem;
+}
+.btn-login { 
+    width: 100%; padding: 12px; background: var(--primary); color: white; 
+    border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 1rem; transition: 0.2s;
+}
+.btn-login:hover { background: #4a030c; }
+
+/* ================= CABEÇALHO GLOBAL ================= */
+header { 
+    background: var(--primary); color: white; padding: 12px 20px; display: flex; 
+    justify-content: space-between; align-items: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
+}
+h1 { margin: 0; font-size: 1.2rem; font-weight: bold; }
+.header-controls { display: flex; gap: 10px; align-items: center;}
+select.global-select { padding: 6px 10px; border-radius: 4px; font-weight: bold; border: none; outline: none; cursor: pointer;}
+.btn-sair { 
+    background: rgba(255,255,255,0.2); color: white; border: none; padding: 6px 15px; 
+    border-radius: 4px; cursor: pointer; font-weight: bold; transition: 0.2s; 
+}
+.btn-sair:hover { background: rgba(255,255,255,0.3); }
+
+/* ================= PAINEL DO ADMIN ================= */
+.admin-app { display: none; flex-direction: column; height: 100vh; width: 100%; }
+.main-container { display: flex; flex: 1; overflow: hidden; }
+
+.canvas-area { 
+    flex: 2; background: #2b2b2b; overflow: auto; position: relative; 
+    display: flex; justify-content: center; align-items: flex-start; 
+}
+.canvas-wrapper { padding: 30px; transform-origin: top left; transition: transform 0.2s; }
+canvas { border: 2px solid white; box-shadow: 0 5px 25px rgba(0,0,0,0.8); background: white; }
+
+.controls-area { 
+    flex: 1; min-width: 420px; max-width: 500px; background: var(--light); 
+    border-left: 1px solid #ccc; display: flex; flex-direction: column; box-shadow: -2px 0 10px rgba(0,0,0,0.05); 
+}
+.controls-content { padding: 20px; overflow-y: auto; flex: 1; }
+
+.card { background: white; border: 1px solid var(--border); border-radius: 8px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 6px rgba(0,0,0,0.05); }
+.card-header { 
+    font-weight: bold; margin-bottom: 12px; border-bottom: 2px solid #eee; padding-bottom: 8px; 
+    display:flex; justify-content:space-between; align-items: center; color: var(--primary); font-size: 1.05rem; 
+}
+
+input[type="text"], input[type="number"], select.interno, textarea.interno { 
+    width: 100%; padding: 10px; margin-bottom: 12px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-family: inherit; 
+}
+
+button.btn-action { 
+    width: 100%; padding: 12px; border: none; border-radius: 4px; font-weight: bold; 
+    cursor: pointer; color: white; margin-top: 5px; transition: 0.2s; 
+}
+.btn-blue { background: #0056b3; } .btn-blue:hover { background: #004494; }
+.btn-green { background: var(--success); } .btn-green:hover { background: #218838; }
+.btn-red { background: var(--danger); } .btn-red:hover { background: #c82333; }
+
+.tab-menu { display: flex; gap: 5px; margin-bottom: 20px; background: #e0e0e0; padding: 4px; border-radius: 6px; }
+.tab-btn { flex: 1; padding: 10px 5px; background: transparent; border: none; color: #555; font-size: 0.85rem; border-radius: 4px; cursor: pointer; font-weight: bold;}
+.tab-btn.active { background: white; color: var(--primary); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+.tab-btn[onclick*="gabarito"].active { background: #fff3cd; color: #856404; }
+.tab-content { display: none; animation: fadeIn 0.3s; }
+.tab-content.active { display: block; }
+@keyframes fadeIn { from { opacity:0; transform: translateY(5px); } to { opacity:1; transform: translateY(0); } }
+
+.zoom-controls { position: absolute; bottom: 25px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.85); padding: 8px 15px; border-radius: 30px; display: flex; gap: 15px; z-index: 90; }
+.btn-zoom { width: 35px; height: 35px; border-radius: 50%; border: 2px solid white; background: transparent; color: white; display: flex; align-items: center; justify-content: center; font-size: 20px; cursor: pointer; transition: 0.2s; }
+
+.bloco-group { border: 1px solid var(--border); padding: 10px; margin-bottom: 10px; border-radius: 5px; }
+.bloco-header { font-weight: bold; background: #eee; padding: 6px; margin: -10px -10px 10px -10px; border-bottom: 1px solid #ccc; color: var(--primary); }
+.bloco-row { display: flex; justify-content: space-between; font-size: 0.95rem; margin-bottom: 4px; border-bottom: 1px dashed #eee; padding-bottom: 2px;}
+.bloco-footer { font-weight: bold; margin-top: 8px; text-align: right; font-size: 0.9rem; background: var(--light); padding: 6px; display: flex; justify-content: space-between; }
+.resumo-final { text-align: center; font-size: 1.5rem; font-weight: bold; padding: 15px 0; border-top: 2px solid #eee; margin-top: 10px;}
+.resumo-final.aprovado { color: #0b7a25; } .resumo-final.reprovado { color: #c62828; }
+.step-box { background: #fff3cd; color: #856404; padding: 12px; margin-bottom: 12px; border-left: 5px solid #ffeeba; }
+
+.historico-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+.historico-table th { background: var(--primary); color: white; text-align: left; padding: 8px; position: sticky; top: 0; }
+.historico-table td { border-bottom: 1px solid #eee; padding: 8px; vertical-align: middle; }
+.historico-table tr:nth-child(even) { background-color: #f8f9fa; }
+.btn-apagar { background: transparent; border: none; color: #dc3545; font-size: 16px; cursor: pointer; padding: 4px; }
+
+/* ================= PAINEL DO PROFESSOR ================= */
+.prof-app { display: none; flex-direction: column; height: 100vh; overflow: auto; }
+.prof-container { display: flex; flex: 1; justify-content: center; align-items: flex-start; padding: 40px 20px; }
+.prof-card { background: #fffcf5; border-left: 6px solid var(--warning); border-radius: 8px; padding: 25px; width: 100%; max-width: 600px; box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
+.badge-resp { background: var(--warning); color: #000; padding: 5px 12px; border-radius: 20px; font-size: 0.9rem; font-weight: bold; }
+.prof-textarea { width: 100%; height: 160px; padding: 12px; border: 1px solid #ccc; border-radius: 4px; font-family: inherit; text-transform: uppercase; font-weight: bold; font-size: 1.2rem; letter-spacing: 2px; resize: none; margin-bottom: 20px;}
+.prof-label { font-weight: bold; font-size: 0.95rem; color: #555; display: block; margin-bottom: 8px; }
+.prof-btn-group { display: flex; gap: 15px; }
+.prof-btn-group button { flex: 1; padding: 15px; display: flex; justify-content: center; align-items: center; gap: 8px; font-size: 1rem;}
+
+/* ================= IMPRESSÃO PDF ================= */
+@media print {
+    body * { visibility: hidden; }
+    #areaImpressao, #areaImpressao * { visibility: visible; }
+    #areaImpressao { position: absolute; left: 0; top: 0; width: 100%; min-height: 100%; background: white; z-index: 9999; }
+    .pdf-container { padding: 20px; font-family: Arial, sans-serif; width: 100%; box-sizing: border-box; }
+    .pdf-header { text-align: center; border-bottom: 3px solid #000; padding-bottom: 10px; margin-bottom: 15px; }
+    .pdf-header h1 { margin: 0; font-size: 24px; color: black; text-transform: uppercase; }
+    .pdf-info { display: flex; justify-content: space-between; background: #f4f4f4; padding: 10px; border: 1px solid #999; margin-bottom: 15px; font-size: 13px; font-weight: bold;}
+    .pdf-blocos-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 10px; }
+    .pdf-bloco { border: 1px solid #000; padding: 5px; page-break-inside: avoid; }
+    .pdf-bloco h3 { margin: 0 0 5px 0; background: #eee; padding: 4px; font-size: 11px; border-bottom: 1px solid #000; text-align: center; text-transform: uppercase;}
+    .pdf-row { display: flex; justify-content: space-between; margin-bottom: 2px; font-size: 11px; padding: 2px 5px; border-bottom: 1px dotted #ccc; }
+    .pdf-bloco-footer { border-top: 2px solid #000; margin-top: 5px; padding-top: 4px; background: #eee; font-weight: bold; font-size: 11px; display: flex; justify-content: space-between; }
+    .pdf-nota-final { text-align: center; font-size: 18px; font-weight: bold; border: 2px solid #000; padding: 8px; margin-bottom: 10px; background: #f0f0f0; }
+    .pdf-nota-final.aprovado { color: #0b7a25; border-color: #0b7a25; background: #e8f5e9; }
+    .pdf-nota-final.reprovado { color: #c62828; border-color: #c62828; background: #ffebee; }
+    .pdf-imagem-container { text-align: center; margin-top: 5px; width: 100%; }
+    #imgPrint { width: 100% !important; max-width: 100% !important; height: auto; display: block; margin: 0 auto; border: 1px solid #000; }
+    @page { size: A4; margin: 10mm; }
+}
+#areaImpressao { display: none; }
+@media print { #areaImpressao { display: block; } }
