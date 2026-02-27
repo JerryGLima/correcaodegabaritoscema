@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portal CEMA - Sistema na Nuvem</title>
+    
+    <!-- LINK PARA O ARQUIVO DE ESTILOS CSS -->
+    <link rel="stylesheet" href="style.css">
+
+    <!-- BIBLIOTECAS DO FIREBASE -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+</head>
+<body>
+
+    <!-- 1. TELA DE LOGIN -->
+    <div id="loginScreen" class="login-container">
+        <div class="login-card">
+            <h2>🎓 CORREÇÃO DE GABARITOS</h2>
+            <p>Faça login para acessar o sistema.</p>
+            <input type="email" id="txtEmail" class="login-input" placeholder="E-mail">
+            <input type="password" id="txtSenha" class="login-input" placeholder="Senha">
+            <button class="btn-login" id="btnLogin" onclick="fazerLogin()">Entrar</button>
+        </div>
+    </div>
+
+    <!-- 2. PAINEL DO ADMIN (CORREÇÃO) -->
+    <div id="adminScreen" class="admin-app">
+        <!-- ÁREA OCULTA PARA IMPRESSÃO DO PDF -->
+        <div id="areaImpressao">
+            <div class="pdf-container">
+                <div class="pdf-header">
+                    <h1>CEMA - RELATÓRIO DE AVALIAÇÃO</h1>
+                    <p>Sistema de Correção Automática</p>
+                </div>
+                <div class="pdf-info">
+                    <div><strong>ALUNO:</strong> <span id="pNome">---</span></div>
+                    <div><strong>TURMA:</strong> <span id="pTurma">---</span></div>
+                    <div><strong>DATA:</strong> <span id="pData">---</span></div>
+                </div>
+                <div id="pdfBlocos" class="pdf-blocos-grid"></div>
+                <div class="pdf-nota-final" id="pNotaFinal">NOTA FINAL: 0.0</div>
+                <div class="pdf-imagem-container">
+                    <span style="font-size: 12px; font-weight: bold; display: block; border-top: 2px dashed #000; padding-top: 10px; margin-bottom: 5px;">ESPELHO DO CARTÃO RESPOSTA (GABARITO)</span>
+                    <img id="imgPrint" src="" alt="Gabarito">
+                    <div style="font-size:10px; margin-top:5px; font-weight: bold;">
+                        Legenda: <span style="color:#0b7a25">■ Acerto</span> | <span style="color:#c62828">■ Erro</span> | <span style="color:#ffc107">■ Correta (Prof)</span> | <span style="color:#007bff">■ Anulada (Azul)</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <header>
+            <h1>⚙️ CEMA - ADMIN</h1>
+            <div class="header-controls">
+                <select id="selTurmaAdmin" class="global-select" onchange="trocarTurmaGlobal()">
+                    <optgroup label="Ensino Médio">
+                        <option value="medio1">1ª Série (Médio)</option>
+                        <option value="medio2">2ª Série (Médio)</option>
+                        <option value="medio3A">3ª Série A (Médio)</option>
+                        <option value="medio3B">3ª Série B (Médio)</option>
+                    </optgroup>
+                    <optgroup label="Ensino Fundamental II">
+                        <option value="fund9A">9º Ano A</option>
+                        <option value="fund9B">9º Ano B</option>
+                        <option value="fund8">8º Ano</option>
+                        <option value="fund7">7º Ano</option>
+                        <option value="fund6">6º Ano</option>
+                    </optgroup>
+                </select>
+                <button class="btn-sair" onclick="fazerLogout()">Sair</button>
+            </div>
+        </header>
+
+        <div class="main-container">
+            <div class="canvas-area">
+                <div class="zoom-controls">
+                    <button class="btn-zoom" onclick="ajustarZoom(-0.15)">-</button>
+                    <button class="btn-zoom" onclick="resetZoom()">R</button>
+                    <button class="btn-zoom" onclick="ajustarZoom(0.15)">+</button>
+                </div>
+                <div class="canvas-wrapper"><canvas id="canvas"></canvas></div>
+            </div>
+
+            <div class="controls-area">
+                <div class="controls-content">
+                    <div class="card" style="border-left: 5px solid #333;">
+                        <div class="card-header">📂 1. Carregar Prova</div>
+                        <input type="file" id="uploadInput" accept="image/*" style="margin-bottom: 0; width: 100%; box-sizing: border-box;">
+                    </div>
+
+                    <div class="tab-menu">
+                        <button class="tab-btn active" onclick="mudarTab('corrigir')">Corrigir</button>
+                        <button class="tab-btn" onclick="mudarTab('historico')">Histórico</button>
+                        <button class="tab-btn" onclick="mudarTab('mapear')">Mapear</button>
+                        <button class="tab-btn" onclick="mudarTab('gabarito')">Ver Nuvem</button>
+                    </div>
+
+                    <!-- TAB CORREÇÃO -->
+                    <div id="tab-corrigir" class="tab-content active">
+                        <div class="card" style="border-left: 5px solid #6f42c1;">
+                            <div class="card-header">Dados do Aluno</div>
+                            <input type="text" id="nomeAluno" placeholder="Nome Completo do Aluno">
+                            <div style="display:flex; gap:10px; align-items: center;">
+                                <label style="font-weight: bold; color: #555;">Redação:</label>
+                                <input type="number" id="notaRedacao" placeholder="0 a 10" step="0.5" style="margin-bottom: 0;">
+                            </div>
+                        </div>
+                        <button class="btn-action btn-green" onclick="executarCorrecao()">✅ CORRIGIR AGORA</button>
+                        <button class="btn-action btn-blue" id="btnPdf" onclick="window.print()" style="display:none; background:#212529;">🖨️ IMPRIMIR PDF</button>
+                        
+                        <div class="card" style="margin-top:20px;">
+                            <div class="card-header">Boletim Rápido</div>
+                            <div id="resultadoBoletim" style="text-align:center; color:#999;">Aguardando correção...</div>
+                        </div>
+                    </div>
+
+                    <!-- TAB HISTÓRICO -->
+                    <div id="tab-historico" class="tab-content">
+                        <div class="card">
+                            <div class="card-header">
+                                <span>Alunos (<span class="lblModeloNome">...</span>)</span>
+                                <button onclick="limparHistoricoBD()" style="width:auto; padding:6px; background:var(--danger); border:none; color:white; border-radius:4px; font-size:11px;">Limpar Turma</button>
+                            </div>
+                            <div id="tabelaHistorico" style="max-height:350px; overflow-y:auto; border: 1px solid #eee;"></div>
+                            <button class="btn-action btn-green" style="background:#198754; margin-top: 10px;" onclick="exportarExcel()">📥 EXCEL (.CSV)</button>
+                        </div>
+                    </div>
+
+                    <!-- TAB MAPEAR -->
+                    <div id="tab-mapear" class="tab-content">
+                        <div class="card" style="background:#f1f8ff; border-left: 5px solid #0056b3;">
+                            <div class="card-header">Configuração</div>
+                            <p style="margin-top:0;">Turma: <b class="lblModeloNome">...</b></p>
+                            <div id="instrucaoTexto" class="step-box">Carregue a imagem e clique abaixo.</div>
+                            <button class="btn-action btn-blue" onclick="iniciarMapeamento()">🛠️ Iniciar Cliques</button>
+                            <div id="areaCodigo" style="display:none; margin-top:15px;">
+                                <textarea id="outputCodigo" class="interno" readonly style="height:100px; font-family: monospace; font-size: 11px;"></textarea>
+                                <button class="btn-action btn-green" onclick="copiarCodigo()" id="btnCopiar">📋 Copiar Código</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TAB GABARITO (VISÃO ADMIN) -->
+                    <div id="tab-gabarito" class="tab-content">
+                        <div class="card" style="border-left: 5px solid var(--warning); background: #fffcf5;">
+                            <div class="card-header" style="color: #856404;">
+                                <span>Gabarito da Nuvem</span>
+                                <span id="totalGabaritoAdmin" style="background: var(--warning); color: #000; padding: 3px 8px; border-radius: 12px; font-size: 0.85rem;">0</span>
+                            </div>
+                            <select id="selDisciplinaAdmin" class="interno" onchange="carregarTextoGabarito()"></select>
+                            <textarea id="txtGabaritoAdmin" class="interno" style="height: 120px; font-weight: bold; letter-spacing: 1px; text-transform: uppercase;"></textarea>
+                            <div style="display:flex; gap:10px;">
+                                <button class="btn-action btn-blue" style="flex:2;" onclick="salvarGabaritoDB()" id="btnSalvarGabaritoAdmin">💾 Salvar Alteração</button>
+                                <button class="btn-action btn-red" style="flex:1;" onclick="limparMateriaDB()">🗑️ Limpar</button>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. PAINEL DO PROFESSOR (DIGITAÇÃO) -->
+    <div id="professorScreen" class="prof-app">
+        <header>
+            <h1>📝 PORTAL DO PROFESSOR</h1>
+            <div class="header-controls">
+                <select id="selTurmaProf" class="global-select" onchange="trocarTurmaGlobal()">
+                    <optgroup label="Ensino Médio">
+                        <option value="medio1">1ª Série (Médio)</option>
+                        <option value="medio2">2ª Série (Médio)</option>
+                        <option value="medio3A">3ª Série A (Médio)</option>
+                        <option value="medio3B">3ª Série B (Médio)</option>
+                    </optgroup>
+                    <optgroup label="Ensino Fundamental II">
+                        <option value="fund9A">9º Ano A</option>
+                        <option value="fund9B">9º Ano B</option>
+                        <option value="fund8">8º Ano</option>
+                        <option value="fund7">7º Ano</option>
+                        <option value="fund6">6º Ano</option>
+                    </optgroup>
+                </select>
+                <button class="btn-sair" onclick="fazerLogout()">Sair</button>
+            </div>
+        </header>
+
+        <div class="prof-container">
+            <div class="prof-card">
+                <div class="card-header">
+                    <span>Lançar Gabarito (<span class="lblModeloNome">...</span>)</span>
+                    <span id="totalGabaritoProf" class="badge-resp">0 resp.</span>
+                </div>
+                
+                <label class="prof-label">Selecione sua Disciplina:</label>
+                <select id="selDisciplinaProf" class="interno" onchange="carregarTextoGabarito()"></select>
+                
+                <label class="prof-label">Respostas (Ex: 01A 02B... Use 'N' ou 'X' para nulas):</label>
+                <textarea id="txtGabaritoProf" class="prof-textarea" placeholder="Ex: 01A 02B 03N 04X..."></textarea>
+                
+                <div class="prof-btn-group">
+                    <button class="btn-action btn-blue" id="btnSalvarGabaritoProf" onclick="salvarGabaritoDB()">💾 Salvar na Nuvem</button>
+                    <button class="btn-action btn-red" onclick="limparMateriaDB()">🗑️ Limpar Matéria</button>
+                </div>
+                <div style="text-align: center; color: #666; font-size: 0.85rem; margin-top: 20px;">Salvamento criptografado na nuvem (Firebase).</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- LINK PARA O ARQUIVO DE JAVASCRIPT -->
+    <script src="script.js"></script>
+</body>
+</html>
