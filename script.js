@@ -261,8 +261,12 @@ function mudarTab(tabName) {
     const buttons = document.querySelectorAll('.tab-btn');
     if(tabName=='corrigir') buttons[0].classList.add('active');
     if(tabName=='historico') { buttons[1].classList.add('active'); renderizarHistorico(); }
-    if(tabName=='mapear') buttons[2].classList.add('active');
-    if(tabName=='gabarito') buttons[3].classList.add('active');
+    
+    // NOVA ABA ESTATÍSTICAS
+    if(tabName=='estatisticas') { buttons[2].classList.add('active'); renderizarEstatisticas(); }
+    
+    if(tabName=='mapear') buttons[3].classList.add('active');
+    if(tabName=='gabarito') buttons[4].classList.add('active');
 }
 
 const canvasEl = document.getElementById('canvas');
@@ -289,7 +293,7 @@ function ajustarZoom(d) { if(!imgAtual.src)return; zoomLevel+=d; if(zoomLevel<0.
 function resetZoom() { if(!imgAtual.src)return; zoomLevel = (document.querySelector('.canvas-area').clientWidth-60)/imgAtual.width; if(zoomLevel>1)zoomLevel=1; redesenhar(); }
 
 // ==========================================
-// MOTOR DE CORREÇÃO
+// MOTOR DE CORREÇÃO (COM SALVAMENTO DE ERROS)
 // ==========================================
 function executarCorrecao() {
     if(!imgAtual.src) return alert("Carregue a imagem da prova primeiro!");
@@ -321,15 +325,14 @@ function executarCorrecao() {
     let htmlPdf = "";
     let totalQuestoesProva = 0;
     
+    // VARIÁVEL PARA GUARDAR QUAIS QUESTÕES ESSE ALUNO ERROU
+    let errosDoAluno =[];
+    
+    let notaBloco1 = 0, notaBloco2 = 0, notaBloco3 = 0, notaBloco4 = 0;
+    
     const isEnsinoMedio = configAtual.nome.includes("Médio");
     const isFund9 = configAtual.nome.includes("9º");
     const isFund678 = configAtual.nome.includes("6º") || configAtual.nome.includes("7º") || configAtual.nome.includes("8º");
-
-    // ===== NOVO: VARIÁVEIS PARA GUARDAR AS NOTAS DOS BLOCOS NO HISTÓRICO =====
-    let notaBloco1 = 0;
-    let notaBloco2 = 0;
-    let notaBloco3 = 0;
-    let notaBloco4 = 0;
 
     configAtual.blocos.forEach((bloco, index) => {
         let pontosB = 0; let totalQ = 0; let linhas = ""; let pdfLinhas = "";
@@ -349,7 +352,24 @@ function executarCorrecao() {
                         todasOpcoesQ.forEach(zOp => { ctx.lineWidth = 3; ctx.strokeStyle = "#007bff"; ctx.strokeRect(zOp.x-(zOp.w/2), zOp.y-(zOp.h/2), zOp.w, zOp.h); });
                         if(alu) { const zAlu = configAtual.mapa.find(m => m.questao==q && m.alt==alu); if(zAlu) { ctx.lineWidth = 6; ctx.strokeStyle = "#007bff"; ctx.strokeRect(zAlu.x-(zAlu.w/2), zAlu.y-(zAlu.h/2), zAlu.w, zAlu.h); } }
                     } else {
-                        if(alu) { const z = configAtual.mapa.find(m => m.questao==q && m.alt==alu); if(z) { ctx.lineWidth = 5; if(prof && alu==prof) { ctx.strokeStyle="#0b7a25"; acertosM++; } else { ctx.strokeStyle="#c62828"; } ctx.strokeRect(z.x-(z.w/2), z.y-(z.h/2), z.w, z.h); } }
+                        if(alu) { 
+                            const z = configAtual.mapa.find(m => m.questao==q && m.alt==alu); 
+                            if(z) { 
+                                ctx.lineWidth = 5; 
+                                if(prof && alu==prof) { 
+                                    ctx.strokeStyle="#0b7a25"; acertosM++; 
+                                } else { 
+                                    ctx.strokeStyle="#c62828"; 
+                                    // ALUNO ERROU - GUARDA A QUESTÃO
+                                    errosDoAluno.push(q);
+                                } 
+                                ctx.strokeRect(z.x-(z.w/2), z.y-(z.h/2), z.w, z.h); 
+                            } 
+                        } else {
+                            // ALUNO DEIXOU EM BRANCO - TAMBÉM CONTA COMO ERRO
+                            if(prof) errosDoAluno.push(q);
+                        }
+
                         if(prof && alu!=prof) { const zC = configAtual.mapa.find(m => m.questao==q && m.alt==prof); if(zC) { ctx.lineWidth=4; ctx.strokeStyle="#ffc107"; ctx.strokeRect(zC.x-(zC.w/2), zC.y-(zC.h/2), zC.w, zC.h); } }
                     }
                 }
@@ -389,7 +409,6 @@ function executarCorrecao() {
             media = totalQ > 0 ? (pontosB/totalQ)*10 : 0;
         }
 
-        // ===== NOVO: Salva a nota ponderada no bloco correspondente =====
         if(index === 0) notaBloco1 = media;
         if(index === 1) notaBloco2 = media;
         if(index === 2) notaBloco3 = media;
@@ -418,18 +437,19 @@ function executarCorrecao() {
     
     document.getElementById('imgPrint').src = canvasEl.toDataURL("image/jpeg", 1.0);
 
-    // ===== NOVO: Salva as notas dos blocos no histórico =====
+    // Salva aluno com array de erros incluído
     salvarAlunoNoHistorico({
         id: Date.now(), 
         data: new Date().toLocaleDateString(), 
         nome: nomeAluno, 
         turma: configAtual.nome, 
         redacao: notaRedacao.toFixed(1), 
-        total: totalPontos.toFixed(1),
+        total: parseFloat(totalPontos.toFixed(1)), // Converte para número para o Ranking
         b1: notaBloco1.toFixed(1),
         b2: notaBloco2.toFixed(1),
         b3: notaBloco3.toFixed(1),
-        b4: notaBloco4.toFixed(1)
+        b4: notaBloco4.toFixed(1),
+        erros: errosDoAluno
     });
 }
 
@@ -444,6 +464,7 @@ async function carregarHistoricoDoFirebase() {
         snapshot.forEach(doc => { historicoAlunos.push(doc.data()); });
         historicoAlunos.sort((a,b) => a.id - b.id);
         renderizarHistorico();
+        renderizarEstatisticas(); // Atualiza estatísticas também
     } catch(e) { console.error(e); historicoAlunos =[]; }
 }
 
@@ -451,6 +472,7 @@ async function salvarAlunoNoHistorico(obj) {
     historicoAlunos.push(obj);
     if(db) { try { await db.collection("historico").doc(obj.id.toString()).set(obj); } catch(e) {} }
     renderizarHistorico();
+    renderizarEstatisticas();
 }
 
 async function limparHistoricoBD() { 
@@ -465,6 +487,7 @@ async function limparHistoricoBD() {
             } catch(e){}
         }
         renderizarHistorico(); 
+        renderizarEstatisticas();
     } 
 }
 
@@ -473,6 +496,7 @@ async function apagarItemHistorico(id) {
         historicoAlunos = historicoAlunos.filter(a => a.id !== id);
         if(db) { try { await db.collection("historico").doc(id.toString()).delete(); } catch(e){} }
         renderizarHistorico();
+        renderizarEstatisticas();
     }
 }
 
@@ -489,22 +513,86 @@ function renderizarHistorico() {
 function exportarExcel() {
     const filtrados = historicoAlunos.filter(a => a.turma === configAtual.nome);
     if(filtrados.length===0) return alert(`A turma está vazia.`);
-    
-    // ===== NOVO: Colunas dos Blocos adicionadas no Excel =====
-    let csv = "DATA;NOME;TURMA;NOTA REDAÇÃO;NOTA BLOCO 1;NOTA BLOCO 2;NOTA BLOCO 3;NOTA BLOCO 4;ACERTOS GERAIS\n";
-    
+    let csv = "DATA;NOME;TURMA;NOTA REDAÇÃO;LINGUAGENS;HUMANAS;MATEMÁTICA;NATUREZA;ACERTOS GERAIS\n";
     filtrados.forEach(a => {
-        // Puxa as notas salvas (ou 0 se for de correções muito antigas que não tinham isso)
-        let nB1 = a.b1 || "0.0";
-        let nB2 = a.b2 || "0.0";
-        let nB3 = a.b3 || "0.0";
-        let nB4 = a.b4 || "0.0";
-        
+        let nB1 = a.b1 || "0.0"; let nB2 = a.b2 || "0.0"; let nB3 = a.b3 || "0.0"; let nB4 = a.b4 || "0.0";
         csv += `${a.data};${a.nome};${a.turma};${a.redacao};${nB1};${nB2};${nB3};${nB4};${a.total}\n`;
     });
-    
     const blob = new Blob(["\uFEFF" + csv], {type:'text/csv;charset=utf-8;'});
     const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = `relatorio_${configAtual.nome.replace(/\s/g, '_')}.csv`; link.click();
+}
+
+// ==========================================
+// MÓDULO DE ESTATÍSTICAS (RANKING E ERROS)
+// ==========================================
+function renderizarEstatisticas() {
+    const divRanking = document.getElementById('rankingTurma');
+    const divErros = document.getElementById('estatisticasErros');
+    if(!divRanking || !divErros) return;
+
+    // Filtra os alunos da turma selecionada
+    let filtrados = historicoAlunos.filter(a => a.turma === configAtual.nome);
+
+    if(filtrados.length === 0) {
+        divRanking.innerHTML = `<p style="padding: 10px; color: #999;">Sem dados para gerar ranking.</p>`;
+        divErros.innerHTML = `<p style="padding: 10px; color: #999;">Sem dados de correção.</p>`;
+        return;
+    }
+
+    // 1. GERAR RANKING (Ordena pela maior nota e pega os 10 primeiros)
+    filtrados.sort((a, b) => b.total - a.total);
+    let htmlRanking = `<table class="historico-table" style="background: transparent;"><tbody>`;
+    
+    // Mostra até o top 10 (ou todos se tiver menos de 10)
+    let qtdRanking = filtrados.length > 10 ? 10 : filtrados.length;
+    for(let i=0; i < qtdRanking; i++) {
+        let medalha = "🏅";
+        if(i === 0) medalha = "🥇"; else if(i === 1) medalha = "🥈"; else if(i === 2) medalha = "🥉";
+        htmlRanking += `<tr><td style="width:30px; text-align:center; font-size: 1.2rem;">${medalha}</td><td><strong>${filtrados[i].nome}</strong></td><td style="text-align:right;"><b>${filtrados[i].total} pts</b></td></tr>`;
+    }
+    htmlRanking += `</tbody></table>`;
+    divRanking.innerHTML = htmlRanking;
+
+
+    // 2. GERAR RAIO-X DE ERROS
+    let contagemErros = {}; // Vai virar { "14": 5, "22": 3 } (Questão X: Y erros)
+    
+    filtrados.forEach(aluno => {
+        if(aluno.erros && Array.isArray(aluno.erros)) {
+            aluno.erros.forEach(q => {
+                if(!contagemErros[q]) contagemErros[q] = 0;
+                contagemErros[q]++;
+            });
+        }
+    });
+
+    // Transforma o objeto em Array e ordena do mais errado pro menos errado
+    let listaErros = Object.keys(contagemErros).map(q => {
+        return { questao: q, quantidade: contagemErros[q] };
+    });
+    listaErros.sort((a, b) => b.quantidade - a.quantidade);
+
+    if(listaErros.length === 0) {
+        divErros.innerHTML = `<p style="padding: 10px; color: #28a745;">Nenhum erro registrado (ou turmas antigas).</p>`;
+        return;
+    }
+
+    // Pega o Top 15 mais erradas
+    let topErros = listaErros.slice(0, 15);
+    let htmlErros = `<table class="historico-table" style="background: transparent;"><tbody>`;
+    topErros.forEach((item, index) => {
+        let icone = index < 3 ? "🔥" : "⚠️"; // Destaque para o top 3 mais erradas
+        
+        // Descobre de qual matéria é aquela questão para mostrar no relatório
+        let nomeMatErro = "Múltiplas";
+        configAtual.materias.forEach(m => {
+            if(item.questao >= m.inicio && item.questao < (m.inicio + m.qtd)) { nomeMatErro = m.nome; }
+        });
+
+        htmlErros += `<tr><td style="width:30px; text-align:center;">${icone}</td><td>Questão <b>${item.questao}</b><br><small style="color:#666;">${nomeMatErro}</small></td><td style="text-align:right; color:#dc3545;"><b>${item.quantidade} alunos erraram</b></td></tr>`;
+    });
+    htmlErros += `</tbody></table>`;
+    divErros.innerHTML = htmlErros;
 }
 
 // ==========================================
