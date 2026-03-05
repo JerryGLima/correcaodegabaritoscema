@@ -94,8 +94,9 @@
                     <div class="tab-menu">
                         <button class="tab-btn active" onclick="mudarTab('corrigir')">Corrigir</button>
                         <button class="tab-btn" onclick="mudarTab('historico')">Histórico</button>
+                        <button class="tab-btn" onclick="mudarTab('estatisticas')" style="color: #0056b3;">📊 Estatísticas</button>
                         <button class="tab-btn" onclick="mudarTab('mapear')">Mapear</button>
-                        <button class="tab-btn" onclick="mudarTab('gabarito')">Gab. Professor</button>
+                        <button class="tab-btn" onclick="mudarTab('gabarito')">Ver Nuvem</button>
                     </div>
 
                     <!-- TAB CORREÇÃO -->
@@ -122,10 +123,31 @@
                         <div class="card">
                             <div class="card-header">
                                 <span>Alunos (<span class="lblModeloNome">...</span>)</span>
-                                <button onclick="limparHistoricoBD()" style="width:auto; padding:6px; background:var(--danger); border:none; color:white; border-radius:4px; font-size:11px;">Limpar Turma</button>
+                                <button onclick="limparHistoricoBD()" style="width:auto; padding:6px; background:var(--danger); border:none; color:white; border-radius:4px; font-size:11px; cursor:pointer;">Limpar Turma</button>
                             </div>
                             <div id="tabelaHistorico" style="max-height:350px; overflow-y:auto; border: 1px solid #eee;"></div>
                             <button class="btn-action btn-green" style="background:#198754; margin-top: 10px;" onclick="exportarExcel()">📥 EXCEL (.CSV)</button>
+                        </div>
+                    </div>
+
+                    <!-- NOVA TAB ESTATÍSTICAS -->
+                    <div id="tab-estatisticas" class="tab-content">
+                        <div class="card" style="border-left: 5px solid #0056b3; background: #f8fbff;">
+                            <div class="card-header" style="color: #0056b3;">
+                                🏆 Ranking da Turma
+                            </div>
+                            <div id="rankingTurma" style="max-height: 200px; overflow-y: auto; font-size: 0.95rem;">
+                                <!-- O Javascript vai preencher isso -->
+                            </div>
+                        </div>
+
+                        <div class="card" style="border-left: 5px solid #dc3545; background: #fff8f8;">
+                            <div class="card-header" style="color: #dc3545;">
+                                🚨 Questões Mais Erradas
+                            </div>
+                            <div id="estatisticasErros" style="max-height: 250px; overflow-y: auto; font-size: 0.95rem;">
+                                <!-- O Javascript vai preencher isso -->
+                            </div>
                         </div>
                     </div>
 
