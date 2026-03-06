@@ -619,8 +619,11 @@ async function carregarAlunosDoFirebase() {
 function atualizarListasDeAlunosUI() {
     const turmaSelecionada = configAtual.nome; 
     let alunosDaTurma = alunosDB.filter(a => a.turma === turmaSelecionada);
+    
+    // Organiza em ordem alfabética
     alunosDaTurma.sort((a, b) => a.nome.localeCompare(b.nome));
 
+    // Atualiza a lista suspensa na aba de correção
     const selectCorrecao = document.getElementById('nomeAluno');
     if(selectCorrecao) {
         selectCorrecao.innerHTML = "";
@@ -635,16 +638,22 @@ function atualizarListasDeAlunosUI() {
     const spanTotal = document.getElementById('totalAlunosTurma');
     if(!divTabela) return;
 
-    spanTotal.innerText = `${alunosDaTurma.length} alunos`;
+    // DEIXA O TOTAL MAIS DESTACADO E BONITO LÁ EM CIMA
+    if(spanTotal) {
+        spanTotal.innerHTML = `<span style="background: var(--primary); color: white; padding: 4px 10px; border-radius: 12px; font-weight: bold;">Total: ${alunosDaTurma.length}</span>`;
+    }
 
     if(alunosDaTurma.length === 0) {
         divTabela.innerHTML = `<p style='text-align:center;color:#999; padding: 20px;'>Sem alunos. Adicione acima.</p>`;
         return;
     }
 
-    let h = `<table class="historico-table"><thead><tr><th>Nome do Aluno</th><th style="text-align:center; width: 100px;">Ações</th></tr></thead><tbody>`;
-    alunosDaTurma.forEach(a => {
+    // ADICIONA A COLUNA "Nº" PARA APARECER 1, 2, 3... TIPO LISTA DE CHAMADA
+    let h = `<table class="historico-table"><thead><tr><th style="width: 40px; text-align: center;">Nº</th><th>Nome do Aluno</th><th style="text-align:center; width: 100px;">Ações</th></tr></thead><tbody>`;
+    
+    alunosDaTurma.forEach((a, index) => {
         h += `<tr>
+            <td style="text-align: center; color: #666; font-weight: bold;">${index + 1}</td>
             <td><strong>${a.nome}</strong></td>
             <td style="text-align:center;">
                 <button class="btn-apagar" style="color:#0056b3;" onclick="editarAluno('${a.id}', '${a.nome}')" title="Editar">✏️</button>
@@ -652,6 +661,7 @@ function atualizarListasDeAlunosUI() {
             </td>
         </tr>`;
     });
+    
     h += `</tbody></table>`;
     divTabela.innerHTML = h;
 }
