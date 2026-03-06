@@ -37,7 +37,7 @@ let imgAtual = new Image();
 let gabaritoMestreDB = {};
 let zoomLevel = 1.0; 
 let historicoAlunos =[];
-let alunosDB =[]; // NOVO: Guarda a lista de alunos cadastrados
+let alunosDB =[]; // Guarda a lista de alunos cadastrados
 let estadoMap=0, calib={xA:0,yA:0,distX:0,distY:0}, indiceDisc=0, mapaTemp=[];
 
 // ==========================================
@@ -111,7 +111,6 @@ if(auth) {
         if (user) {
             document.getElementById('loginScreen').style.display = 'none';
             
-            // VERIFICA SE É O ADMIN PELO E-MAIL
             if(user.email.toLowerCase() === EMAIL_ADMIN.toLowerCase()) {
                 usuarioAtualRole = 'admin';
                 document.getElementById('adminScreen').style.display = 'flex';
@@ -121,9 +120,8 @@ if(auth) {
                 document.getElementById('adminScreen').style.display = 'none';
                 document.getElementById('professorScreen').style.display = 'flex';
             }
-            trocarTurmaGlobal(); // Inicia o sistema carregando a 1ª turma
+            trocarTurmaGlobal();
             
-            // NOVO: Carrega alunos após login se for admin
             if(usuarioAtualRole === 'admin') carregarAlunosDoFirebase();
 
         } else {
@@ -162,7 +160,7 @@ async function trocarTurmaGlobal() {
 
     if(usuarioAtualRole === 'admin') {
         carregarHistoricoDoFirebase();
-        atualizarListasDeAlunosUI(); // NOVO: Atualiza alunos da turma
+        atualizarListasDeAlunosUI();
         if(document.getElementById('tab-mapear') && document.getElementById('tab-mapear').classList.contains('active')) resetMapeamento();
     }
 }
@@ -267,7 +265,6 @@ function mudarTab(tabName, btnElement) {
     document.getElementById('tab-'+tabName).classList.add('active');
     if(btnElement) btnElement.classList.add('active');
     
-    // Atualiza estatísticas e listas dependendo da aba aberta
     if(tabName === 'historico') renderizarHistorico();
     if(tabName === 'estatisticas') renderizarEstatisticas();
     if(tabName === 'alunos') atualizarListasDeAlunosUI();
@@ -297,7 +294,7 @@ function ajustarZoom(d) { if(!imgAtual.src)return; zoomLevel+=d; if(zoomLevel<0.
 function resetZoom() { if(!imgAtual.src)return; zoomLevel = (document.querySelector('.canvas-area').clientWidth-60)/imgAtual.width; if(zoomLevel>1)zoomLevel=1; redesenhar(); }
 
 // ==========================================
-// MOTOR DE CORREÇÃO (COM SALVAMENTO DE ERROS)
+// MOTOR DE CORREÇÃO
 // ==========================================
 function executarCorrecao() {
     if(!imgAtual.src) return alert("Carregue a imagem da prova primeiro!");
@@ -333,9 +330,7 @@ function executarCorrecao() {
     let htmlPdf = "";
     let totalQuestoesProva = 0;
     
-    // VARIÁVEL PARA GUARDAR QUAIS QUESTÕES ESSE ALUNO ERROU
     let errosDoAluno =[];
-    
     let notaBloco1 = 0, notaBloco2 = 0, notaBloco3 = 0, notaBloco4 = 0;
     
     const isEnsinoMedio = configAtual.nome.includes("Médio");
@@ -555,7 +550,6 @@ function renderizarEstatisticas() {
     htmlRanking += `</tbody></table>`;
     divRanking.innerHTML = htmlRanking;
 
-
     // RAIO-X DE ERROS
     let contagemErros = {}; 
     filtrados.forEach(aluno => {
@@ -623,7 +617,6 @@ function atualizarListasDeAlunosUI() {
     // Organiza em ordem alfabética
     alunosDaTurma.sort((a, b) => a.nome.localeCompare(b.nome));
 
-    // Atualiza a lista suspensa na aba de correção
     const selectCorrecao = document.getElementById('nomeAluno');
     if(selectCorrecao) {
         selectCorrecao.innerHTML = "";
@@ -638,7 +631,6 @@ function atualizarListasDeAlunosUI() {
     const spanTotal = document.getElementById('totalAlunosTurma');
     if(!divTabela) return;
 
-    // DEIXA O TOTAL MAIS DESTACADO E BONITO LÁ EM CIMA
     if(spanTotal) {
         spanTotal.innerHTML = `<span style="background: var(--primary); color: white; padding: 4px 10px; border-radius: 12px; font-weight: bold;">Total: ${alunosDaTurma.length}</span>`;
     }
@@ -648,11 +640,21 @@ function atualizarListasDeAlunosUI() {
         return;
     }
 
-    // ADICIONA A COLUNA "Nº" PARA APARECER 1, 2, 3... TIPO LISTA DE CHAMADA
-    let h = `<table class="historico-table"><thead><tr><th style="width: 40px; text-align: center;">Nº</th><th>Nome do Aluno</th><th style="text-align:center; width: 100px;">Ações</th></tr></thead><tbody>`;
+    // NOVA TABELA COM CHECKBOX PARA SELEÇÃO
+    let h = `<table class="historico-table">
+                <thead>
+                    <tr>
+                        <th style="width: 30px; text-align: center;"><input type="checkbox" onchange="document.querySelectorAll('.chk-aluno').forEach(c => c.checked = this.checked)" title="Selecionar Todos"></th>
+                        <th style="width: 40px; text-align: center;">Nº</th>
+                        <th>Nome do Aluno</th>
+                        <th style="text-align:center; width: 100px;">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>`;
     
     alunosDaTurma.forEach((a, index) => {
         h += `<tr>
+            <td style="text-align: center;"><input type="checkbox" class="chk-aluno" value="${a.id}"></td>
             <td style="text-align: center; color: #666; font-weight: bold;">${index + 1}</td>
             <td><strong>${a.nome}</strong></td>
             <td style="text-align:center;">
@@ -710,28 +712,43 @@ async function editarAluno(id, nomeAtual) {
     }
 }
 
-async function transferirTurma() {
+// NOVA FUNÇÃO: MOVE APENAS OS ALUNOS SELECIONADOS
+async function transferirTurmaSelecionados() {
+    const checkboxes = document.querySelectorAll('.chk-aluno:checked');
+    if(checkboxes.length === 0) return alert("Selecione pelo menos um aluno marcando a caixinha ao lado do nome!");
+
     const turmaAtual = configAtual.nome;
     const codigoDestino = document.getElementById('turmaDestinoTransferencia').value;
     const turmaDestino = BANCO_DE_PROVAS[codigoDestino].nome;
 
-    if(turmaAtual === turmaDestino) return alert("A turma de destino é igual à atual!");
+    if(turmaAtual === turmaDestino) return alert("A turma de destino não pode ser igual à atual!");
 
-    let alunosParaMover = alunosDB.filter(a => a.turma === turmaAtual);
-    if(alunosParaMover.length === 0) return alert("Não há alunos nesta turma para mover.");
-
-    if(confirm(`ATENÇÃO: Você vai mover TODOS os ${alunosParaMover.length} alunos do ${turmaAtual} para o ${turmaDestino}. Confirma?`)) {
+    if(confirm(`Você vai mover ${checkboxes.length} aluno(s) do ${turmaAtual} para o ${turmaDestino}. Confirma?`)) {
+        const btn = document.querySelector("button[onclick='transferirTurmaSelecionados()']");
+        if(btn) btn.innerText = "Movendo...";
+        
         try {
             const batch = db.batch();
-            alunosParaMover.forEach(aluno => {
-                const ref = db.collection("alunos").doc(aluno.id);
+            
+            checkboxes.forEach(chk => {
+                const idAluno = chk.value;
+                const ref = db.collection("alunos").doc(idAluno);
                 batch.update(ref, { turma: turmaDestino });
-                aluno.turma = turmaDestino; 
+                
+                // Atualiza na memória para refletir na tela
+                let alunoIndex = alunosDB.findIndex(a => a.id === idAluno);
+                if(alunoIndex > -1) alunosDB[alunoIndex].turma = turmaDestino; 
             });
+            
             await batch.commit();
             alert("Sucesso! Alunos transferidos.");
             atualizarListasDeAlunosUI();
-        } catch(e) { alert("Erro ao transferir turma em massa."); console.error(e); }
+            if(btn) btn.innerText = "Mover Selecionados 🚀";
+        } catch(e) { 
+            alert("Erro ao transferir alunos em massa."); 
+            console.error(e); 
+            if(btn) btn.innerText = "Mover Selecionados 🚀";
+        }
     }
 }
 
