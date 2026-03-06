@@ -143,20 +143,20 @@
                                 <span id="totalAlunosTurma" style="font-size: 0.85rem; color: #666;">0 alunos</span>
                             </div>
                             <div id="tabelaAlunos" style="max-height:300px; overflow-y:auto; border: 1px solid #eee;">
-                                <!-- JS preenche a lista aqui -->
+                                <!-- JS preenche a lista aqui com checkboxes -->
                             </div>
                         </div>
 
                         <!-- ÁREA DE REMANEJAMENTO -->
                         <div class="card" style="border-left: 5px solid #ffc107; background: #fffdf8; margin-top: 20px;">
                             <div class="card-header" style="color: #856404; font-size: 0.95rem;">
-                                🔄 Remanejamento de Fim de Ano
+                                🔄 Remanejamento de Fim de Ano (Dança das Cadeiras)
                             </div>
+                            <p style="font-size: 0.85rem; color: #666; margin-top: 0;">Selecione os alunos nas caixinhas da tabela acima, escolha a turma do próximo ano e clique em mover.</p>
                             <div style="display: flex; gap: 10px; align-items: center; font-size: 0.9rem; font-weight: bold;">
-                                De: <span class="lblModeloNome" style="color:red;">...</span>
                                 Para: 
                                 <select id="turmaDestinoTransferencia" class="interno" style="margin-bottom: 0; flex: 1;"></select>
-                                <button class="btn-action" style="background: #ffc107; color: black; margin-top: 0; width: auto; padding: 10px 15px;" onclick="transferirTurma()">Mover Todos 🚀</button>
+                                <button class="btn-action" style="background: #ffc107; color: black; margin-top: 0; width: auto; padding: 10px 15px;" onclick="transferirTurmaSelecionados()">Mover Selecionados 🚀</button>
                             </div>
                         </div>
                     </div>
