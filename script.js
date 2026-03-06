@@ -37,6 +37,7 @@ let imgAtual = new Image();
 let gabaritoMestreDB = {};
 let zoomLevel = 1.0; 
 let historicoAlunos =[];
+let alunosDB =[]; // NOVO: Guarda a lista de alunos cadastrados
 let estadoMap=0, calib={xA:0,yA:0,distX:0,distY:0}, indiceDisc=0, mapaTemp=[];
 
 // ==========================================
@@ -121,6 +122,10 @@ if(auth) {
                 document.getElementById('professorScreen').style.display = 'flex';
             }
             trocarTurmaGlobal(); // Inicia o sistema carregando a 1ª turma
+            
+            // NOVO: Carrega alunos após login se for admin
+            if(usuarioAtualRole === 'admin') carregarAlunosDoFirebase();
+
         } else {
             document.getElementById('loginScreen').style.display = 'flex';
             document.getElementById('adminScreen').style.display = 'none';
@@ -157,6 +162,7 @@ async function trocarTurmaGlobal() {
 
     if(usuarioAtualRole === 'admin') {
         carregarHistoricoDoFirebase();
+        atualizarListasDeAlunosUI(); // NOVO: Atualiza alunos da turma
         if(document.getElementById('tab-mapear') && document.getElementById('tab-mapear').classList.contains('active')) resetMapeamento();
     }
 }
@@ -254,19 +260,17 @@ async function limparMateriaDB() {
 // ==========================================
 // INTERFACE E CANVAS DO ADMIN
 // ==========================================
-function mudarTab(tabName) {
+function mudarTab(tabName, btnElement) {
     document.querySelectorAll('.tab-content').forEach(d => d.classList.remove('active'));
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    
     document.getElementById('tab-'+tabName).classList.add('active');
-    const buttons = document.querySelectorAll('.tab-btn');
-    if(tabName=='corrigir') buttons[0].classList.add('active');
-    if(tabName=='historico') { buttons[1].classList.add('active'); renderizarHistorico(); }
+    if(btnElement) btnElement.classList.add('active');
     
-    // NOVA ABA ESTATÍSTICAS
-    if(tabName=='estatisticas') { buttons[2].classList.add('active'); renderizarEstatisticas(); }
-    
-    if(tabName=='mapear') buttons[3].classList.add('active');
-    if(tabName=='gabarito') buttons[4].classList.add('active');
+    // Atualiza estatísticas e listas dependendo da aba aberta
+    if(tabName === 'historico') renderizarHistorico();
+    if(tabName === 'estatisticas') renderizarEstatisticas();
+    if(tabName === 'alunos') atualizarListasDeAlunosUI();
 }
 
 const canvasEl = document.getElementById('canvas');
@@ -301,6 +305,10 @@ function executarCorrecao() {
 
     const nomeAluno = document.getElementById('nomeAluno').value || "Aluno Não Identificado";
     const notaRedacao = parseFloat(document.getElementById('notaRedacao').value) || 0;
+
+    if(!document.getElementById('nomeAluno').value) {
+        if(!confirm("Você não selecionou um aluno na lista. Deseja corrigir mesmo assim como 'Aluno Não Identificado'?")) return;
+    }
 
     let gabaritoUnificado = {};
     const txtFull = Object.values(gabaritoMestreDB).join(" ");
@@ -360,13 +368,11 @@ function executarCorrecao() {
                                     ctx.strokeStyle="#0b7a25"; acertosM++; 
                                 } else { 
                                     ctx.strokeStyle="#c62828"; 
-                                    // ALUNO ERROU - GUARDA A QUESTÃO
                                     errosDoAluno.push(q);
                                 } 
                                 ctx.strokeRect(z.x-(z.w/2), z.y-(z.h/2), z.w, z.h); 
                             } 
                         } else {
-                            // ALUNO DEIXOU EM BRANCO - TAMBÉM CONTA COMO ERRO
                             if(prof) errosDoAluno.push(q);
                         }
 
@@ -437,14 +443,13 @@ function executarCorrecao() {
     
     document.getElementById('imgPrint').src = canvasEl.toDataURL("image/jpeg", 1.0);
 
-    // Salva aluno com array de erros incluído
     salvarAlunoNoHistorico({
         id: Date.now(), 
         data: new Date().toLocaleDateString(), 
         nome: nomeAluno, 
         turma: configAtual.nome, 
         redacao: notaRedacao.toFixed(1), 
-        total: parseFloat(totalPontos.toFixed(1)), // Converte para número para o Ranking
+        total: parseFloat(totalPontos.toFixed(1)), 
         b1: notaBloco1.toFixed(1),
         b2: notaBloco2.toFixed(1),
         b3: notaBloco3.toFixed(1),
@@ -464,7 +469,7 @@ async function carregarHistoricoDoFirebase() {
         snapshot.forEach(doc => { historicoAlunos.push(doc.data()); });
         historicoAlunos.sort((a,b) => a.id - b.id);
         renderizarHistorico();
-        renderizarEstatisticas(); // Atualiza estatísticas também
+        renderizarEstatisticas(); 
     } catch(e) { console.error(e); historicoAlunos =[]; }
 }
 
@@ -530,7 +535,6 @@ function renderizarEstatisticas() {
     const divErros = document.getElementById('estatisticasErros');
     if(!divRanking || !divErros) return;
 
-    // Filtra os alunos da turma selecionada
     let filtrados = historicoAlunos.filter(a => a.turma === configAtual.nome);
 
     if(filtrados.length === 0) {
@@ -539,11 +543,9 @@ function renderizarEstatisticas() {
         return;
     }
 
-    // 1. GERAR RANKING (Ordena pela maior nota e pega os 10 primeiros)
+    // RANKING
     filtrados.sort((a, b) => b.total - a.total);
     let htmlRanking = `<table class="historico-table" style="background: transparent;"><tbody>`;
-    
-    // Mostra até o top 10 (ou todos se tiver menos de 10)
     let qtdRanking = filtrados.length > 10 ? 10 : filtrados.length;
     for(let i=0; i < qtdRanking; i++) {
         let medalha = "🏅";
@@ -554,9 +556,8 @@ function renderizarEstatisticas() {
     divRanking.innerHTML = htmlRanking;
 
 
-    // 2. GERAR RAIO-X DE ERROS
-    let contagemErros = {}; // Vai virar { "14": 5, "22": 3 } (Questão X: Y erros)
-    
+    // RAIO-X DE ERROS
+    let contagemErros = {}; 
     filtrados.forEach(aluno => {
         if(aluno.erros && Array.isArray(aluno.erros)) {
             aluno.erros.forEach(q => {
@@ -566,33 +567,162 @@ function renderizarEstatisticas() {
         }
     });
 
-    // Transforma o objeto em Array e ordena do mais errado pro menos errado
     let listaErros = Object.keys(contagemErros).map(q => {
         return { questao: q, quantidade: contagemErros[q] };
     });
     listaErros.sort((a, b) => b.quantidade - a.quantidade);
 
     if(listaErros.length === 0) {
-        divErros.innerHTML = `<p style="padding: 10px; color: #28a745;">Nenhum erro registrado (ou turmas antigas).</p>`;
+        divErros.innerHTML = `<p style="padding: 10px; color: #28a745;">Nenhum erro registrado.</p>`;
         return;
     }
 
-    // Pega o Top 15 mais erradas
     let topErros = listaErros.slice(0, 15);
     let htmlErros = `<table class="historico-table" style="background: transparent;"><tbody>`;
     topErros.forEach((item, index) => {
-        let icone = index < 3 ? "🔥" : "⚠️"; // Destaque para o top 3 mais erradas
+        let icone = index < 3 ? "🔥" : "⚠️"; 
         
-        // Descobre de qual matéria é aquela questão para mostrar no relatório
         let nomeMatErro = "Múltiplas";
         configAtual.materias.forEach(m => {
             if(item.questao >= m.inicio && item.questao < (m.inicio + m.qtd)) { nomeMatErro = m.nome; }
         });
 
-        htmlErros += `<tr><td style="width:30px; text-align:center;">${icone}</td><td>Questão <b>${item.questao}</b><br><small style="color:#666;">${nomeMatErro}</small></td><td style="text-align:right; color:#dc3545;"><b>${item.quantidade} alunos erraram</b></td></tr>`;
+        htmlErros += `<tr><td style="width:30px; text-align:center;">${icone}</td><td>Questão <b>${item.questao}</b><br><small style="color:#666;">${nomeMatErro}</small></td><td style="text-align:right; color:#dc3545;"><b>${item.quantidade} erros</b></td></tr>`;
     });
     htmlErros += `</tbody></table>`;
     divErros.innerHTML = htmlErros;
+}
+
+// ==========================================
+// MÓDULO DE GESTÃO DE ALUNOS (FIREBASE)
+// ==========================================
+
+async function carregarAlunosDoFirebase() {
+    if(!db) return;
+    try {
+        const snapshot = await db.collection("alunos").get();
+        alunosDB =[];
+        snapshot.forEach(doc => { 
+            let aluno = doc.data();
+            aluno.id = doc.id; 
+            alunosDB.push(aluno); 
+        });
+        
+        const optGroupsAdmin = document.getElementById('selTurmaAdmin').innerHTML;
+        document.getElementById('novoTurmaAluno').innerHTML = optGroupsAdmin;
+        document.getElementById('turmaDestinoTransferencia').innerHTML = optGroupsAdmin;
+        
+        atualizarListasDeAlunosUI();
+    } catch(e) { console.error("Erro ao carregar alunos", e); }
+}
+
+function atualizarListasDeAlunosUI() {
+    const turmaSelecionada = configAtual.nome; 
+    let alunosDaTurma = alunosDB.filter(a => a.turma === turmaSelecionada);
+    alunosDaTurma.sort((a, b) => a.nome.localeCompare(b.nome));
+
+    const selectCorrecao = document.getElementById('nomeAluno');
+    if(selectCorrecao) {
+        selectCorrecao.innerHTML = "";
+        if(alunosDaTurma.length === 0) {
+            selectCorrecao.innerHTML = `<option value="">-- Nenhum aluno cadastrado nesta turma --</option>`;
+        } else {
+            alunosDaTurma.forEach(a => { selectCorrecao.innerHTML += `<option value="${a.nome}">${a.nome}</option>`; });
+        }
+    }
+
+    const divTabela = document.getElementById('tabelaAlunos');
+    const spanTotal = document.getElementById('totalAlunosTurma');
+    if(!divTabela) return;
+
+    spanTotal.innerText = `${alunosDaTurma.length} alunos`;
+
+    if(alunosDaTurma.length === 0) {
+        divTabela.innerHTML = `<p style='text-align:center;color:#999; padding: 20px;'>Sem alunos. Adicione acima.</p>`;
+        return;
+    }
+
+    let h = `<table class="historico-table"><thead><tr><th>Nome do Aluno</th><th style="text-align:center; width: 100px;">Ações</th></tr></thead><tbody>`;
+    alunosDaTurma.forEach(a => {
+        h += `<tr>
+            <td><strong>${a.nome}</strong></td>
+            <td style="text-align:center;">
+                <button class="btn-apagar" style="color:#0056b3;" onclick="editarAluno('${a.id}', '${a.nome}')" title="Editar">✏️</button>
+                <button class="btn-apagar" onclick="excluirAluno('${a.id}', '${a.nome}')" title="Excluir">🗑️</button>
+            </td>
+        </tr>`;
+    });
+    h += `</tbody></table>`;
+    divTabela.innerHTML = h;
+}
+
+async function cadastrarAluno() {
+    const nomeInput = document.getElementById('novoNomeAluno');
+    const turmaInput = document.getElementById('novoTurmaAluno');
+    const nome = nomeInput.value.trim().toUpperCase(); 
+    const codigoTurma = turmaInput.value;
+    const nomeTurma = BANCO_DE_PROVAS[codigoTurma].nome; 
+
+    if(!nome) return alert("Digite o nome do aluno!");
+
+    const novoAluno = { nome: nome, turma: nomeTurma, dataCadastro: new Date().toISOString() };
+    
+    try {
+        const docRef = await db.collection("alunos").add(novoAluno);
+        novoAluno.id = docRef.id;
+        alunosDB.push(novoAluno);
+        
+        nomeInput.value = ""; 
+        atualizarListasDeAlunosUI();
+    } catch(e) { alert("Erro ao salvar no banco de dados."); }
+}
+
+async function excluirAluno(id, nome) {
+    if(confirm(`Tem certeza que deseja EXCLUIR o aluno ${nome}?`)) {
+        try {
+            await db.collection("alunos").doc(id).delete();
+            alunosDB = alunosDB.filter(a => a.id !== id);
+            atualizarListasDeAlunosUI();
+        } catch(e) { alert("Erro ao excluir."); }
+    }
+}
+
+async function editarAluno(id, nomeAtual) {
+    let novoNome = prompt("Editar nome do aluno:", nomeAtual);
+    if(novoNome && novoNome.trim() !== "" && novoNome !== nomeAtual) {
+        novoNome = novoNome.trim().toUpperCase();
+        try {
+            await db.collection("alunos").doc(id).update({ nome: novoNome });
+            let index = alunosDB.findIndex(a => a.id === id);
+            if(index > -1) alunosDB[index].nome = novoNome;
+            atualizarListasDeAlunosUI();
+        } catch(e) { alert("Erro ao editar."); }
+    }
+}
+
+async function transferirTurma() {
+    const turmaAtual = configAtual.nome;
+    const codigoDestino = document.getElementById('turmaDestinoTransferencia').value;
+    const turmaDestino = BANCO_DE_PROVAS[codigoDestino].nome;
+
+    if(turmaAtual === turmaDestino) return alert("A turma de destino é igual à atual!");
+
+    let alunosParaMover = alunosDB.filter(a => a.turma === turmaAtual);
+    if(alunosParaMover.length === 0) return alert("Não há alunos nesta turma para mover.");
+
+    if(confirm(`ATENÇÃO: Você vai mover TODOS os ${alunosParaMover.length} alunos do ${turmaAtual} para o ${turmaDestino}. Confirma?`)) {
+        try {
+            const batch = db.batch();
+            alunosParaMover.forEach(aluno => {
+                const ref = db.collection("alunos").doc(aluno.id);
+                batch.update(ref, { turma: turmaDestino });
+                aluno.turma = turmaDestino; 
+            });
+            await batch.commit();
+            alert("Sucesso! Alunos transferidos.");
+            atualizarListasDeAlunosUI();
+        } catch(e) { alert("Erro ao transferir turma em massa."); console.error(e); }
+    }
 }
 
 // ==========================================
