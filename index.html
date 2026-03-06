@@ -91,19 +91,23 @@
                         <input type="file" id="uploadInput" accept="image/*" style="margin-bottom: 0; width: 100%; box-sizing: border-box;">
                     </div>
 
-                    <div class="tab-menu">
-                        <button class="tab-btn active" onclick="mudarTab('corrigir')">Corrigir</button>
-                        <button class="tab-btn" onclick="mudarTab('historico')">Histórico</button>
-                        <button class="tab-btn" onclick="mudarTab('estatisticas')" style="color: #0056b3;">📊 Estatísticas</button>
-                        <button class="tab-btn" onclick="mudarTab('mapear')">Mapear</button>
-                        <button class="tab-btn" onclick="mudarTab('gabarito')">Ver Nuvem</button>
+                    <div class="tab-menu" id="menuPrincipal">
+                        <button class="tab-btn active" onclick="mudarTab('corrigir', this)">Corrigir</button>
+                        <button class="tab-btn" onclick="mudarTab('alunos', this)" style="color: #6f42c1;">👥 Alunos</button>
+                        <button class="tab-btn" onclick="mudarTab('historico', this)">Histórico</button>
+                        <button class="tab-btn" onclick="mudarTab('estatisticas', this)" style="color: #0056b3;">📊 Estatísticas</button>
+                        <button class="tab-btn" onclick="mudarTab('mapear', this)">Mapear</button>
+                        <button class="tab-btn" onclick="mudarTab('gabarito', this)">Ver Nuvem</button>
                     </div>
 
                     <!-- TAB CORREÇÃO -->
                     <div id="tab-corrigir" class="tab-content active">
                         <div class="card" style="border-left: 5px solid #6f42c1;">
                             <div class="card-header">Dados do Aluno</div>
-                            <input type="text" id="nomeAluno" placeholder="Nome Completo do Aluno">
+                            <!-- Select que puxa os alunos cadastrados na nuvem -->
+                            <select id="nomeAluno" class="interno" style="margin-bottom: 12px;">
+                                <option value="">-- Cadastre alunos na aba 'Alunos' --</option>
+                            </select>
                             <div style="display:flex; gap:10px; align-items: center;">
                                 <label style="font-weight: bold; color: #555;">Redação:</label>
                                 <input type="number" id="notaRedacao" placeholder="0 a 10" step="0.5" style="margin-bottom: 0;">
@@ -118,19 +122,58 @@
                         </div>
                     </div>
 
+                    <!-- NOVA TAB GERENCIAR ALUNOS -->
+                    <div id="tab-alunos" class="tab-content">
+                        <div class="card" style="border-left: 5px solid #6f42c1; background: #fbf8ff;">
+                            <div class="card-header" style="color: #6f42c1;">
+                                <span>Cadastrar Novo Aluno</span>
+                            </div>
+                            <div style="display:flex; gap:10px;">
+                                <input type="text" id="novoNomeAluno" placeholder="Nome Completo" style="flex: 2; margin-bottom: 0;">
+                                <select id="novoTurmaAluno" class="interno" style="flex: 1; margin-bottom: 0;">
+                                    <!-- Será preenchido via JS -->
+                                </select>
+                                <button class="btn-action btn-green" style="flex: 1; margin-top: 0;" onclick="cadastrarAluno()">➕ Adicionar</button>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header">
+                                <span>Lista de Alunos (<span class="lblModeloNome">...</span>)</span>
+                                <span id="totalAlunosTurma" style="font-size: 0.85rem; color: #666;">0 alunos</span>
+                            </div>
+                            <div id="tabelaAlunos" style="max-height:300px; overflow-y:auto; border: 1px solid #eee;">
+                                <!-- JS preenche a lista aqui -->
+                            </div>
+                        </div>
+
+                        <!-- ÁREA DE REMANEJAMENTO -->
+                        <div class="card" style="border-left: 5px solid #ffc107; background: #fffdf8; margin-top: 20px;">
+                            <div class="card-header" style="color: #856404; font-size: 0.95rem;">
+                                🔄 Remanejamento de Fim de Ano
+                            </div>
+                            <div style="display: flex; gap: 10px; align-items: center; font-size: 0.9rem; font-weight: bold;">
+                                De: <span class="lblModeloNome" style="color:red;">...</span>
+                                Para: 
+                                <select id="turmaDestinoTransferencia" class="interno" style="margin-bottom: 0; flex: 1;"></select>
+                                <button class="btn-action" style="background: #ffc107; color: black; margin-top: 0; width: auto; padding: 10px 15px;" onclick="transferirTurma()">Mover Todos 🚀</button>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- TAB HISTÓRICO -->
                     <div id="tab-historico" class="tab-content">
                         <div class="card">
                             <div class="card-header">
-                                <span>Alunos (<span class="lblModeloNome">...</span>)</span>
-                                <button onclick="limparHistoricoBD()" style="width:auto; padding:6px; background:var(--danger); border:none; color:white; border-radius:4px; font-size:11px; cursor:pointer;">Limpar Turma</button>
+                                <span>Alunos Avaliados (<span class="lblModeloNome">...</span>)</span>
+                                <button onclick="limparHistoricoBD()" style="width:auto; padding:6px; background:var(--danger); border:none; color:white; border-radius:4px; font-size:11px; cursor:pointer;">Limpar Notas</button>
                             </div>
                             <div id="tabelaHistorico" style="max-height:350px; overflow-y:auto; border: 1px solid #eee;"></div>
                             <button class="btn-action btn-green" style="background:#198754; margin-top: 10px;" onclick="exportarExcel()">📥 EXCEL (.CSV)</button>
                         </div>
                     </div>
 
-                    <!-- NOVA TAB ESTATÍSTICAS -->
+                    <!-- TAB ESTATÍSTICAS -->
                     <div id="tab-estatisticas" class="tab-content">
                         <div class="card" style="border-left: 5px solid #0056b3; background: #f8fbff;">
                             <div class="card-header" style="color: #0056b3;">
