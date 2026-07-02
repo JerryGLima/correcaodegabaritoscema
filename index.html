@@ -12,6 +12,9 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+    <!-- BIBLIOTECA PARA GERAR ARQUIVOS EXCEL (.xlsx) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
 
@@ -191,6 +194,17 @@
                             <div id="estatisticasErros" style="max-height: 250px; overflow-y: auto; font-size: 0.95rem;">
                                 <!-- O Javascript vai preencher isso -->
                             </div>
+                        </div>
+
+                        <div class="card" style="border-left: 5px solid #198754; background: #f6fff9;">
+                            <div class="card-header" style="color: #198754;">
+                                <span>📄 Tabela Geral por Área (Modelo PAC)</span>
+                            </div>
+                            <p style="font-size:0.85rem; color:#666; margin-top:0;">Média geral de cada aluno por área de conhecimento, calculada a partir de todas as correções salvas na nuvem para esta turma.</p>
+                            <div id="tabelaPAC" style="max-height: 300px; overflow-y:auto; border: 1px solid #eee; margin-bottom: 10px;">
+                                <!-- O Javascript vai preencher isso -->
+                            </div>
+                            <button class="btn-action btn-green" style="background:#198754;" onclick="exportarTabelaPAC()">📥 BAIXAR TABELA PAC (EXCEL)</button>
                         </div>
                     </div>
 
