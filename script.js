@@ -320,7 +320,10 @@ function executarCorrecao() {
         const data = ctx.getImageData(z.x-(z.w/2), z.y-(z.h/2), z.w, z.h).data;
         let escuro = 0;
         for(let i=0; i<data.length; i+=16) if(((data[i]+data[i+1]+data[i+2])/3) < 140) escuro++;
-        if((escuro/(data.length/16)) > 0.35) if(!respAluno[z.questao]) respAluno[z.questao] = z.alt;
+        if((escuro/(data.length/16)) > 0.35) {
+            if(!respAluno[z.questao]) respAluno[z.questao] = [];
+            respAluno[z.questao].push(z.alt);
+        }
     });
 
     let totalPontos = 0; 
@@ -343,11 +346,21 @@ function executarCorrecao() {
             if(disc) {
                 let acertosM = 0;
                 for(let q=disc.inicio; q<(disc.inicio+disc.qtd); q++) {
-                    const alu = respAluno[q]; 
+                    const marcadas = respAluno[q] || [];
+                    const duplaMarcacao = marcadas.length > 1;
+                    const alu = marcadas.length === 1 ? marcadas[0] : undefined;
                     const prof = gabaritoUnificado[q];
                     const isNula = (prof === 'N' || prof === 'X');
 
-                    if (isNula) {
+                    if (duplaMarcacao) {
+                        // Mais de uma alternativa marcada na mesma questão = errada automaticamente
+                        marcadas.forEach(letraMarcada => {
+                            const zDup = configAtual.mapa.find(m => m.questao==q && m.alt==letraMarcada);
+                            if(zDup) { ctx.lineWidth = 5; ctx.strokeStyle = "#c62828"; ctx.strokeRect(zDup.x-(zDup.w/2), zDup.y-(zDup.h/2), zDup.w, zDup.h); }
+                        });
+                        errosDoAluno.push(q);
+                        if(prof && !isNula) { const zC = configAtual.mapa.find(m => m.questao==q && m.alt==prof); if(zC) { ctx.lineWidth=4; ctx.strokeStyle="#ffc107"; ctx.strokeRect(zC.x-(zC.w/2), zC.y-(zC.h/2), zC.w, zC.h); } }
+                    } else if (isNula) {
                         acertosM++; 
                         const todasOpcoesQ = configAtual.mapa.filter(m => m.questao == q);
                         todasOpcoesQ.forEach(zOp => { ctx.lineWidth = 3; ctx.strokeStyle = "#007bff"; ctx.strokeRect(zOp.x-(zOp.w/2), zOp.y-(zOp.h/2), zOp.w, zOp.h); });
