@@ -52,7 +52,7 @@ const ESCALA_FUND8_B4 =[ { min: 10, max: 100, nota: 10.0 }, { min: 9, max: 9, no
 const ESCALA_FUND9_B4 =[ { min: 15, max: 100, nota: 10.0 }, { min: 14, max: 14, nota: 9.5 }, { min: 13, max: 13, nota: 9.0 }, { min: 12, max: 12, nota: 8.5 }, { min: 11, max: 11, nota: 8.0 }, { min: 10, max: 10, nota: 7.5 }, { min: 9,  max: 9, nota: 7.0 }, { min: 8,  max: 8, nota: 6.5 }, { min: 7,  max: 7, nota: 6.0 }, { min: 6,  max: 6, nota: 5.5 }, { min: 0,  max: 5, nota: 5.0 } ];
 
 function calcularNotaPorEscala(pontos, escala) {
-    for (let regra of escala) if (pontos >= regra.min && pontos <= regra.max) return regra.nota;
+    for (let regra of escala) if (pontos >= regra.min && pontos < (regra.max + 1)) return regra.nota;
     return 0; 
 }
 
