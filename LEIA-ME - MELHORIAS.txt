@@ -1,0 +1,60 @@
+CEMA - SISTEMA DE CORREÇÃO DE GABARITOS
+VERSÃO ORGANIZADA + CONFERÊNCIA MANUAL
+Data: 24/08/2026
+
+ESTRUTURA
+- index.html: tela principal
+- css/style.css: estilos
+- js/config.js: Firebase, mapas, escalas, turmas e parâmetros do OMR
+- js/state.js: Firebase e estado global
+- js/auth.js: login e perfis
+- js/gabaritos.js: gabaritos e turmas
+- js/correcao.js: canvas, OMR, conferência manual e correção
+- js/historico.js: salvamento e histórico
+- js/estatisticas.js: ranking e questões mais erradas
+- js/pac.js: tabela PAC
+- js/alunos.js: cadastro e remanejamento
+- js/mapeamento.js: mapeamento de coordenadas
+- backup_original/: cópia exata dos 3 arquivos recebidos
+
+MELHORIAS DESTA VERSÃO
+1. Código separado em configuração, aplicação e estilos.
+2. Parâmetros do leitor OMR centralizados em OMR_CONFIG.
+3. Conferência manual antes de salvar quando:
+   - nenhuma resposta é detectada;
+   - há mais de uma marcação;
+   - existe uma marcação fraca/duvidosa.
+4. A conferência mostra o cartão completo e um recorte da questão.
+5. É possível escolher A/B/C/D/E ou confirmar EM BRANCO.
+6. O resultado só é salvo após todas as pendências serem conferidas.
+7. O histórico registra revisoesManuais e qtdRevisoesManuais.
+8. Texto de segurança do Firebase foi ajustado para não afirmar criptografia feita pela aplicação.
+
+IMPORTANTE
+Esta versão preserva o Firebase e as regras de notas, turmas, mapas e histórico do sistema original.
+
+
+VERSÃO 2.1 - CORREÇÃO DE CARREGAMENTO DOS ALUNOS
+- Firebase permanece exatamente o mesmo da versão original.
+- Módulo de autenticação passou a carregar somente depois dos demais módulos.
+- A coleção "alunos" agora é carregada para todo usuário autenticado, inclusive professor.
+- Não é necessário hospedar no GitHub para os alunos aparecerem.
+- Para teste local, prefira abrir o index.html pelo Live Server do VS Code (http://127.0.0.1:...).
+- Caso as regras do Firestore neguem acesso, o erro aparece no Console do navegador (F12).
+
+V2.2 - CORREÇÃO DE INICIALIZAÇÃO
+- Corrigida ordem de carregamento dos mapas OMR.
+- MAPA_FUND_105Q agora é carregado junto das configurações, antes de BANCO_DE_PROVAS.
+- configAtual passou a ser inicializado no módulo de estado.
+- Esta falha na V2.1 podia interromper o JavaScript e impedir a listagem de alunos.
+
+
+==========================================
+V2.3 - LEITURA OMR MAIS SEGURA
+==========================================
+- Mantidos os limites de leitura aprovados na V2.2.
+- Questões com duas alternativas de intensidade muito próxima vão para conferência manual.
+- A tela de conferência mostra os percentuais das alternativas mais prováveis.
+- Antes de corrigir, o sistema verifica se o mapa inteiro cabe dentro da imagem.
+- Imagem cortada ou incompatível é bloqueada para evitar correção errada.
+- Nenhuma regra de notas, Firebase, alunos, histórico ou gabaritos foi alterada.
