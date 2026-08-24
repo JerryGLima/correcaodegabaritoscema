@@ -58,3 +58,20 @@ V2.3 - LEITURA OMR MAIS SEGURA
 - Antes de corrigir, o sistema verifica se o mapa inteiro cabe dentro da imagem.
 - Imagem cortada ou incompatível é bloqueada para evitar correção errada.
 - Nenhuma regra de notas, Firebase, alunos, histórico ou gabaritos foi alterada.
+
+
+V2.4 - MAPEAMENTO AUTOMÁTICO
+- Não é mais necessário copiar e colar o código do mapa em config.js.
+- Após mapear, clique em SALVAR MAPEAMENTO.
+- O sistema tenta salvar no Firebase (coleção mapas).
+- Se o Firebase negar a nova coleção, salva no localStorage deste computador.
+- O mapa é aplicado imediatamente à turma atual.
+- O JSON continua disponível apenas como backup opcional.
+
+V2.5 — MAPEAMENTO POR MODELO DE CARTÃO
+- Fundamental 100Q: um único mapa para 6º, 7º e 8º Ano.
+- Fundamental 105Q: um único mapa para 9º Ano A e B.
+- Médio 125Q: um único mapa para 1ª, 2ª, 3ª A e 3ª B.
+- Ao salvar um mapa, ele é aplicado automaticamente a todas as turmas vinculadas ao modelo.
+- Coleção Firebase preferencial: mapas_modelos. Fallback local continua disponível.
+- Compatibilidade: tenta migrar automaticamente mapas locais da V2.4.

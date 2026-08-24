@@ -6,7 +6,7 @@
     <title>Portal CEMA - Sistema na Nuvem</title>
     
     <!-- LINK PARA O ARQUIVO DE ESTILOS CSS -->
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="style.css">
 
     <!-- BIBLIOTECAS DO FIREBASE -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -212,21 +212,12 @@
                     <div id="tab-mapear" class="tab-content">
                         <div class="card" style="background:#f1f8ff; border-left: 5px solid #0056b3;">
                             <div class="card-header">Configuração</div>
-                            <p style="margin-top:0;">Turma selecionada: <b class="lblModeloNome">...</b></p>
-                            <div id="infoModeloMapa" style="padding:10px 12px;background:#fff;border:1px solid #d9e8f7;border-radius:8px;margin-bottom:10px;"></div>
-                            <div id="statusMapa" class="mapa-status info">O sistema usará automaticamente o mapa compartilhado deste modelo de cartão.</div>
+                            <p style="margin-top:0;">Turma: <b class="lblModeloNome">...</b></p>
                             <div id="instrucaoTexto" class="step-box">Carregue a imagem e clique abaixo.</div>
                             <button class="btn-action btn-blue" onclick="iniciarMapeamento()">🛠️ Iniciar Cliques</button>
                             <div id="areaCodigo" style="display:none; margin-top:15px;">
-                                <button class="btn-action btn-green" onclick="salvarMapeamentoAtual()" style="font-size:1rem;">💾 SALVAR MAPEAMENTO</button>
-                                <details style="margin-top:12px;">
-                                    <summary style="cursor:pointer; color:#666; font-size:.85rem;">Backup opcional do mapa (JSON)</summary>
-                                    <textarea id="outputCodigo" class="interno" readonly style="height:80px; font-family:monospace; font-size:10px; margin-top:8px;"></textarea>
-                                    <div style="display:flex; gap:8px;">
-                                        <button class="btn-action btn-blue" onclick="baixarMapaJSON()" type="button">⬇️ Baixar JSON</button>
-                                        <button class="btn-action btn-blue" onclick="copiarCodigo()" id="btnCopiar" type="button">📋 Copiar JSON de backup</button>
-                                    </div>
-                                </details>
+                                <textarea id="outputCodigo" class="interno" readonly style="height:100px; font-family: monospace; font-size: 11px;"></textarea>
+                                <button class="btn-action btn-green" onclick="copiarCodigo()" id="btnCopiar">📋 Copiar Código</button>
                             </div>
                         </div>
                     </div>
@@ -293,50 +284,12 @@
                     <button class="btn-action btn-blue" id="btnSalvarGabaritoProf" onclick="salvarGabaritoDB()">💾 Salvar na Nuvem</button>
                     <button class="btn-action btn-red" onclick="limparMateriaDB()">🗑️ Limpar Matéria</button>
                 </div>
-                <div style="text-align: center; color: #666; font-size: 0.85rem; margin-top: 20px;">Dados armazenados com segurança na nuvem (Firebase).</div>
+                <div style="text-align: center; color: #666; font-size: 0.85rem; margin-top: 20px;">Salvamento criptografado na nuvem (Firebase).</div>
             </div>
         </div>
     </div>
 
-
-    <!-- REVISÃO MANUAL DE QUESTÕES NÃO LIDAS / DUVIDOSAS -->
-    <div id="modalRevisao" class="modal-revisao" style="display:none;">
-        <div class="modal-revisao-conteudo">
-            <div class="modal-revisao-header">
-                <div>
-                    <h2>🔎 Conferência manual</h2>
-                    <p id="contadorRevisao">Questões para conferir</p>
-                </div>
-                <button type="button" class="modal-revisao-fechar" onclick="cancelarRevisaoManual()">×</button>
-            </div>
-            <div class="modal-revisao-corpo">
-                <div class="revisao-imagem-area">
-                    <div class="revisao-ajuda">Confira a marcação diretamente no cartão do aluno.</div>
-                    <img id="imgRevisaoCompleta" alt="Cartão resposta do aluno">
-                </div>
-                <div class="revisao-lista-area">
-                    <div class="revisao-aviso">O sistema encontrou questões sem leitura segura. Marque a resposta vista no cartão ou confirme <b>EM BRANCO</b>.</div>
-                    <div id="listaRevisao"></div>
-                </div>
-            </div>
-            <div class="modal-revisao-footer">
-                <button type="button" class="btn-action btn-red" onclick="cancelarRevisaoManual()">Cancelar</button>
-                <button type="button" class="btn-action btn-green" onclick="confirmarRevisaoManual()">✅ CONFIRMAR E SALVAR CORREÇÃO</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- ARQUIVOS JAVASCRIPT ORGANIZADOS POR RESPONSABILIDADE -->
-    <!-- Ordem importante: primeiro carregamos toda a lógica; autenticação fica por último. -->
-    <script src="js/config.js"></script>
-    <script src="js/state.js"></script>
-    <script src="js/alunos.js"></script>
-    <script src="js/gabaritos.js"></script>
-    <script src="js/correcao.js"></script>
-    <script src="js/historico.js"></script>
-    <script src="js/estatisticas.js"></script>
-    <script src="js/pac.js"></script>
-    <script src="js/mapeamento.js"></script>
-    <script src="js/auth.js"></script>
+    <!-- LINK PARA O ARQUIVO DE JAVASCRIPT -->
+    <script src="script.js"></script>
 </body>
 </html>

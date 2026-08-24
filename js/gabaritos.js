@@ -8,6 +8,7 @@ async function trocarTurmaGlobal() {
     if(document.getElementById('selTurmaProf')) document.getElementById('selTurmaProf').value = id;
 
     configAtual = BANCO_DE_PROVAS[id];
+    if(typeof carregarMapeamentoSalvo === 'function') await carregarMapeamentoSalvo(id);
     document.querySelectorAll('.lblModeloNome').forEach(e => e.innerText = configAtual.nome);
     
     try {
