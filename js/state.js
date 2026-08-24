@@ -18,3 +18,7 @@ let historicoAlunos =[];
 let alunosDB =[]; // Guarda a lista de alunos cadastrados
 let estadoMap=0, calib={xA:0,yA:0,distX:0,distY:0}, indiceDisc=0, mapaTemp=[];
 let correcaoPendente = null;
+
+// V2.6 - trava para evitar correções/salvamentos duplicados por clique repetido
+let correcaoEmAndamento = false;
+const VERSAO_SISTEMA = "2.6";

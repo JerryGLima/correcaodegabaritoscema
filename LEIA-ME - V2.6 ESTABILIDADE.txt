@@ -1,0 +1,34 @@
+CEMA - SISTEMA DE CORREÇÃO DE GABARITOS
+V2.6 - ESTABILIDADE E VALIDAÇÃO FINAL
+
+Base: V2.5 (mapas compartilhados por modelo)
+
+IMPORTANTE
+- O motor OMR e seus limites NÃO foram alterados.
+- Firebase, alunos, gabaritos e mapas continuam na mesma estrutura da V2.5.
+
+MELHORIAS DE SEGURANÇA DA V2.6
+1. Bloqueio de clique duplo em "CORRIGIR AGORA" durante o processamento.
+2. Validação da nota de redação: somente valores entre 0 e 10.
+3. Bloqueio da correção quando o gabarito da turma estiver incompleto.
+4. Aviso antes de substituir a correção já existente do mesmo aluno/turma.
+5. Validação do arquivo de imagem e mensagem clara para imagem inválida/corrompida.
+6. Status visível da correção: imagem carregada, leitura, revisão, salvamento e erro.
+7. Salvamento do histórico em operação atômica no Firebase: ao substituir uma correção, a antiga só é removida se a nova for gravada com sucesso.
+8. Exclusão/limpeza do histórico só altera a tela depois da confirmação do Firebase.
+9. Registro da versão do sistema no histórico (versaoSistema: 2.6).
+10. Identificação visual V2.6 no cabeçalho.
+
+ROTEIRO DE TESTE RECOMENDADO
+- Cartão normal com todas as respostas legíveis.
+- Questão em branco -> deve ir para conferência manual.
+- Dupla marcação -> deve ir para conferência manual.
+- Marcação fraca -> deve ir para conferência manual quando a leitura estiver insegura.
+- Nota de redação menor que 0 ou maior que 10 -> deve bloquear.
+- Gabarito com uma questão ausente -> deve bloquear a correção e informar as questões faltantes.
+- Corrigir novamente o mesmo aluno/turma -> deve pedir confirmação antes de substituir.
+- Clicar duas vezes rapidamente em CORRIGIR -> deve processar apenas uma vez.
+- Desconectar a internet antes de salvar -> deve informar que a correção não foi salva no histórico.
+- Após reconectar, repetir e confirmar que histórico/ranking/PAC atualizam normalmente.
+
+Se todos os testes passarem, esta versão pode ser considerada a versão de produção para uso diário.

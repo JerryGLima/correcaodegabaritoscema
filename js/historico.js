@@ -21,42 +21,63 @@ async function carregarHistoricoDoFirebase() {
 async function salvarAlunoNoHistorico(obj) {
     const existente = historicoAlunos.find(a => a.nome === obj.nome && a.turma === obj.turma);
 
-    if(existente) {
-        historicoAlunos = historicoAlunos.filter(a => a.id !== existente.id);
-        if(db) { try { await db.collection("historico").doc(existente.id.toString()).delete(); } catch(e) {} }
+    if(!db) {
+        console.error('Firestore indisponível: histórico não persistido.');
+        return { ok:false, mensagem:'Firebase/Firestore indisponível.' };
     }
 
-    historicoAlunos.push(obj);
-    if(db) { try { await db.collection("historico").doc(obj.id.toString()).set(obj); } catch(e) {} }
-    renderizarHistorico();
-    renderizarEstatisticas();
-    renderizarTabelaPAC();
-}
+    try {
+        // V2.6: gravação atômica. A versão antiga só é removida se a nova também for gravada.
+        const batch = db.batch();
+        if(existente) batch.delete(db.collection('historico').doc(existente.id.toString()));
+        batch.set(db.collection('historico').doc(obj.id.toString()), obj);
+        await batch.commit();
 
-async function limparHistoricoBD() { 
-    if(confirm(`Apagar TODOS os alunos da turma ${configAtual.nome}?`)) { 
-        const filtrados = historicoAlunos.filter(a => a.turma === configAtual.nome);
-        historicoAlunos = historicoAlunos.filter(a => a.turma !== configAtual.nome);
-        if(db) {
-            try {
-                const batch = db.batch();
-                filtrados.forEach(a => { const ref = db.collection("historico").doc(a.id.toString()); batch.delete(ref); });
-                await batch.commit();
-            } catch(e){}
-        }
-        renderizarHistorico(); 
-        renderizarEstatisticas();
-        renderizarTabelaPAC();
-    } 
-}
-
-async function apagarItemHistorico(id) {
-    if(confirm("Deseja excluir a nota deste aluno?")) {
-        historicoAlunos = historicoAlunos.filter(a => a.id !== id);
-        if(db) { try { await db.collection("historico").doc(id.toString()).delete(); } catch(e){} }
+        if(existente) historicoAlunos = historicoAlunos.filter(a => a.id !== existente.id);
+        historicoAlunos.push(obj);
         renderizarHistorico();
         renderizarEstatisticas();
         renderizarTabelaPAC();
+        return { ok:true };
+    } catch(e) {
+        console.error('Falha ao salvar histórico no Firebase:', e);
+        return { ok:false, mensagem:e?.message || 'Erro ao salvar no Firebase.' };
+    }
+}
+
+async function limparHistoricoBD() { 
+    if(!confirm(`Apagar TODOS os alunos da turma ${configAtual.nome}?`)) return;
+    const filtrados = historicoAlunos.filter(a => a.turma === configAtual.nome);
+    if(!filtrados.length) return alert('Não há registros nesta turma.');
+    if(!db) return alert('Firebase indisponível. Nenhum registro foi apagado.');
+
+    try {
+        const batch = db.batch();
+        filtrados.forEach(a => batch.delete(db.collection('historico').doc(a.id.toString())));
+        await batch.commit();
+        historicoAlunos = historicoAlunos.filter(a => a.turma !== configAtual.nome);
+        renderizarHistorico(); 
+        renderizarEstatisticas();
+        renderizarTabelaPAC();
+        alert('Histórico da turma apagado com sucesso.');
+    } catch(e) {
+        console.error(e);
+        alert('Não foi possível apagar o histórico. Nenhum dado local foi removido.');
+    }
+} 
+
+async function apagarItemHistorico(id) {
+    if(!confirm("Deseja excluir a nota deste aluno?")) return;
+    if(!db) return alert('Firebase indisponível. O registro não foi apagado.');
+    try {
+        await db.collection('historico').doc(id.toString()).delete();
+        historicoAlunos = historicoAlunos.filter(a => a.id !== id);
+        renderizarHistorico();
+        renderizarEstatisticas();
+        renderizarTabelaPAC();
+    } catch(e) {
+        console.error(e);
+        alert('Não foi possível excluir esta correção. Tente novamente.');
     }
 }
 

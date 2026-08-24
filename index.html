@@ -56,7 +56,7 @@
         </div>
 
         <header>
-            <h1>⚙️ CEMA - ADMIN</h1>
+            <h1>⚙️ CEMA - ADMIN <span class="versao-sistema">V2.6</span></h1>
             <div class="header-controls">
                 <select id="selTurmaAdmin" class="global-select" onchange="trocarTurmaGlobal()">
                     <optgroup label="Ensino Médio">
@@ -116,7 +116,8 @@
                                 <input type="number" id="notaRedacao" placeholder="0 a 10" step="0.5" style="margin-bottom: 0;">
                             </div>
                         </div>
-                        <button class="btn-action btn-green" onclick="executarCorrecao()">✅ CORRIGIR AGORA</button>
+                        <button class="btn-action btn-green" id="btnCorrigirAgora" onclick="executarCorrecao()">✅ CORRIGIR AGORA</button>
+                        <div id="statusCorrecao" class="status-correcao info">Pronto para corrigir.</div>
                         <button class="btn-action btn-blue" id="btnPdf" onclick="window.print()" style="display:none; background:#212529;">🖨️ IMPRIMIR PDF</button>
                         
                         <div class="card" style="margin-top:20px;">
@@ -255,7 +256,7 @@
     <!-- 3. PAINEL DO PROFESSOR (DIGITAÇÃO) -->
     <div id="professorScreen" class="prof-app">
         <header>
-            <h1>📝 PORTAL DO PROFESSOR</h1>
+            <h1>📝 PORTAL DO PROFESSOR <span class="versao-sistema">V2.6</span></h1>
             <div class="header-controls">
                 <select id="selTurmaProf" class="global-select" onchange="trocarTurmaGlobal()">
                     <optgroup label="Ensino Médio">

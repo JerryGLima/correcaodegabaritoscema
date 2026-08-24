@@ -16,11 +16,47 @@ function mudarTab(tabName, btnElement) {
 const canvasEl = document.getElementById('canvas');
 const ctx = canvasEl ? canvasEl.getContext('2d', { willReadFrequently: true }) : null; 
 
+function definirStatusCorrecao(texto, tipo='info') {
+    const el = document.getElementById('statusCorrecao');
+    if(!el) return;
+    el.textContent = texto;
+    el.className = 'status-correcao ' + tipo;
+}
+
+function travarBotaoCorrecao(travar) {
+    const btn = document.getElementById('btnCorrigirAgora');
+    if(!btn) return;
+    btn.disabled = !!travar;
+    btn.textContent = travar ? '⏳ PROCESSANDO...' : '✅ CORRIGIR AGORA';
+}
+
 if(document.getElementById('uploadInput')) {
     document.getElementById('uploadInput').addEventListener('change', e => {
         const f = e.target.files[0]; if(!f) return;
+        if(!f.type || !f.type.startsWith('image/')) {
+            e.target.value = '';
+            definirStatusCorrecao('Arquivo inválido. Selecione uma imagem do cartão-resposta.', 'erro');
+            return alert('Selecione um arquivo de imagem válido.');
+        }
         const r = new FileReader();
-        r.onload = ev => { imgAtual.src = ev.target.result; imgAtual.onload = () => resetZoom(); }
+        r.onerror = () => {
+            definirStatusCorrecao('Não foi possível abrir a imagem selecionada.', 'erro');
+            alert('Não foi possível abrir essa imagem. Tente outro arquivo.');
+        };
+        r.onload = ev => {
+            imgAtual = new Image();
+            imgAtual.onload = () => {
+                resetZoom();
+                document.getElementById('btnPdf').style.display = 'none';
+                document.getElementById('resultadoBoletim').innerHTML = 'Aguardando correção...';
+                definirStatusCorrecao(`Imagem carregada (${imgAtual.width} × ${imgAtual.height}px).`, 'ok');
+            };
+            imgAtual.onerror = () => {
+                definirStatusCorrecao('A imagem está corrompida ou em formato não suportado.', 'erro');
+                alert('A imagem não pôde ser carregada.');
+            };
+            imgAtual.src = ev.target.result;
+        };
         r.readAsDataURL(f);
     });
 }
@@ -144,42 +180,84 @@ function detectarQuestoesParaRevisao(respostas, confianca, gabaritoUnificado) {
     return questoes;
 }
 
-function executarCorrecao() {
+async function executarCorrecao() {
+    if(correcaoEmAndamento) return;
     if(!imgAtual.src) return alert("Carregue a imagem da prova primeiro!");
-    if(configAtual.mapa.length === 0) return alert("Esta turma ainda não foi mapeada!");
+    if(!configAtual?.mapa?.length) return alert("Esta turma ainda não foi mapeada!");
 
-    const nomeAluno = document.getElementById('nomeAluno').value || "Aluno Não Identificado";
-    const notaRedacao = parseFloat(document.getElementById('notaRedacao').value) || 0;
+    const campoAluno = document.getElementById('nomeAluno');
+    const nomeAluno = campoAluno.value || "Aluno Não Identificado";
+    const campoRedacao = document.getElementById('notaRedacao');
+    const textoRedacao = String(campoRedacao.value ?? '').trim();
+    const notaRedacao = textoRedacao === '' ? 0 : Number(textoRedacao);
 
-    if(!document.getElementById('nomeAluno').value) {
+    if(!Number.isFinite(notaRedacao) || notaRedacao < 0 || notaRedacao > 10) {
+        definirStatusCorrecao('A nota da redação deve estar entre 0 e 10.', 'erro');
+        campoRedacao.focus();
+        return alert('Digite uma nota de redação válida entre 0 e 10.');
+    }
+
+    if(!campoAluno.value) {
         if(!confirm("Você não selecionou um aluno na lista. Deseja corrigir mesmo assim como 'Aluno Não Identificado'?")) return;
     }
 
     const gabaritoUnificado = montarGabaritoUnificado();
     if(Object.keys(gabaritoUnificado).length === 0) return alert("O gabarito desta turma está vazio na nuvem.");
 
-    const validacaoImagem = validarImagemParaLeitura();
-    if(!validacaoImagem.ok) return alert(validacaoImagem.mensagem);
-
-    const leitura = analisarMarcacoesOMR();
-    const pendencias = detectarQuestoesParaRevisao(leitura.respostas, leitura.confianca, gabaritoUnificado);
-
-    correcaoPendente = {
-        nomeAluno,
-        notaRedacao,
-        gabaritoUnificado,
-        respostas: leitura.respostas,
-        confianca: leitura.confianca,
-        pendencias,
-        revisoesManuais: {}
-    };
-
-    if(pendencias.length > 0) {
-        abrirRevisaoManual();
-        return;
+    // V2.6: não permite corrigir com gabarito parcialmente preenchido.
+    const questoesEsperadas = configAtual.materias.flatMap(d => Array.from({length:Number(d.qtd)}, (_,i)=>Number(d.inicio)+i));
+    const faltandoGabarito = questoesEsperadas.filter(q => !gabaritoUnificado[q]);
+    if(faltandoGabarito.length) {
+        const amostra = faltandoGabarito.slice(0, 15).join(', ');
+        definirStatusCorrecao(`Gabarito incompleto: ${faltandoGabarito.length} questão(ões) sem resposta.`, 'erro');
+        return alert(`Não é seguro corrigir com o gabarito incompleto.\n\nQuestões sem resposta: ${amostra}${faltandoGabarito.length>15?'...':''}`);
     }
 
-    finalizarCorrecao(leitura.respostas, gabaritoUnificado, nomeAluno, notaRedacao, {});
+    const validacaoImagem = validarImagemParaLeitura();
+    if(!validacaoImagem.ok) {
+        definirStatusCorrecao(validacaoImagem.mensagem, 'erro');
+        return alert(validacaoImagem.mensagem);
+    }
+
+    const existente = campoAluno.value ? historicoAlunos.find(a => a.nome === nomeAluno && a.turma === configAtual.nome) : null;
+    if(existente && !confirm(`Já existe uma correção salva para ${nomeAluno} em ${configAtual.nome}.\n\nAo continuar, a correção anterior será substituída. Deseja continuar?`)) return;
+
+    correcaoEmAndamento = true;
+    travarBotaoCorrecao(true);
+    definirStatusCorrecao('Lendo o cartão-resposta...', 'info');
+
+    try {
+        const leitura = analisarMarcacoesOMR();
+        const pendencias = detectarQuestoesParaRevisao(leitura.respostas, leitura.confianca, gabaritoUnificado);
+
+        correcaoPendente = {
+            nomeAluno,
+            notaRedacao,
+            gabaritoUnificado,
+            respostas: leitura.respostas,
+            confianca: leitura.confianca,
+            pendencias,
+            revisoesManuais: {}
+        };
+
+        if(pendencias.length > 0) {
+            definirStatusCorrecao(`${pendencias.length} questão(ões) precisam de conferência manual.`, 'aviso');
+            abrirRevisaoManual();
+            return;
+        }
+
+        await finalizarCorrecao(leitura.respostas, gabaritoUnificado, nomeAluno, notaRedacao, {});
+        correcaoPendente = null;
+    } catch(e) {
+        console.error('Erro durante a correção:', e);
+        definirStatusCorrecao('Ocorreu um erro durante a correção. Nada foi salvo.', 'erro');
+        alert('Ocorreu um erro durante a correção. Tente novamente.');
+    } finally {
+        if(!correcaoPendente) {
+            correcaoEmAndamento = false;
+            travarBotaoCorrecao(false);
+        }
+    }
 }
 
 function obterCropQuestao(q) {
@@ -251,9 +329,12 @@ function cancelarRevisaoManual() {
     document.getElementById('modalRevisao').style.display = 'none';
     document.body.classList.remove('modal-aberto');
     correcaoPendente = null;
+    correcaoEmAndamento = false;
+    travarBotaoCorrecao(false);
+    definirStatusCorrecao('Conferência cancelada. Nenhuma correção foi salva.', 'aviso');
 }
 
-function confirmarRevisaoManual() {
+async function confirmarRevisaoManual() {
     if(!correcaoPendente) return;
     const faltando = correcaoPendente.pendencias.filter(p => !Object.prototype.hasOwnProperty.call(correcaoPendente.revisoesManuais, p.questao));
     if(faltando.length) {
@@ -269,10 +350,20 @@ function confirmarRevisaoManual() {
     document.body.classList.remove('modal-aberto');
     const p = correcaoPendente;
     correcaoPendente = null;
-    finalizarCorrecao(respostasFinais, p.gabaritoUnificado, p.nomeAluno, p.notaRedacao, p.revisoesManuais);
+    definirStatusCorrecao('Salvando correção conferida...', 'info');
+    try {
+        await finalizarCorrecao(respostasFinais, p.gabaritoUnificado, p.nomeAluno, p.notaRedacao, p.revisoesManuais);
+    } catch(e) {
+        console.error(e);
+        definirStatusCorrecao('Não foi possível concluir a correção.', 'erro');
+        alert('Não foi possível concluir a correção. Tente novamente.');
+    } finally {
+        correcaoEmAndamento = false;
+        travarBotaoCorrecao(false);
+    }
 }
 
-function finalizarCorrecao(respAluno, gabaritoUnificado, nomeAluno, notaRedacao, revisoesManuais = {}) {
+async function finalizarCorrecao(respAluno, gabaritoUnificado, nomeAluno, notaRedacao, revisoesManuais = {}) {
     ctx.drawImage(imgAtual, 0, 0);
     let totalPontos = 0; 
     let htmlBlocos = "";
@@ -397,7 +488,7 @@ function finalizarCorrecao(respAluno, gabaritoUnificado, nomeAluno, notaRedacao,
     
     document.getElementById('imgPrint').src = canvasEl.toDataURL("image/jpeg", 1.0);
 
-    salvarAlunoNoHistorico({
+    const resultadoSalvamento = await salvarAlunoNoHistorico({
         id: Date.now(), 
         data: new Date().toLocaleDateString(), 
         nome: nomeAluno, 
@@ -410,6 +501,13 @@ function finalizarCorrecao(respAluno, gabaritoUnificado, nomeAluno, notaRedacao,
         b4: notaBloco4.toFixed(1),
         erros: errosDoAluno,
         revisoesManuais: revisoesManuais,
-        qtdRevisoesManuais: Object.keys(revisoesManuais).length
+        qtdRevisoesManuais: Object.keys(revisoesManuais).length,
+        versaoSistema: VERSAO_SISTEMA
     });
+
+    if(!resultadoSalvamento?.ok) {
+        definirStatusCorrecao('Correção calculada, mas NÃO foi salva no histórico. Verifique a conexão.', 'erro');
+        throw new Error(resultadoSalvamento?.mensagem || 'Falha ao salvar histórico');
+    }
+    definirStatusCorrecao(`Correção salva com sucesso${Object.keys(revisoesManuais).length ? ` (${Object.keys(revisoesManuais).length} revisão(ões) manual(is))` : ''}.`, 'ok');
 }
