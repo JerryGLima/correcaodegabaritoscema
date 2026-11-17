@@ -103,6 +103,12 @@ function exportarTabelaPAC() {
     });
 
     const ws = XLSX.utils.aoa_to_sheet(linhas);
+    for(let linha = 2; linha < linhas.length; linha++) {
+        for(let coluna = 1; coluna < linhas[linha].length; coluna++) {
+            const endereco = XLSX.utils.encode_cell({ r: linha, c: coluna });
+            ws[endereco].z = "0.0";
+        }
+    }
     ws['!cols'] =[{wch:35}, {wch:15}, {wch:18}, {wch:28}, {wch:18}];
     ws['!merges'] =[{ s: {r:0, c:0}, e: {r:0, c:4} }];
 
