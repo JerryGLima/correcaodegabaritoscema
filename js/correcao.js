@@ -139,9 +139,15 @@ function analisarMarcacoesOMR() {
     return { respostas, confianca };
 }
 
+function questaoAnulada(respostaOficial) {
+    return respostaOficial === 'N' || respostaOficial === 'X';
+}
+
 function detectarQuestoesParaRevisao(respostas, confianca, gabaritoUnificado) {
     const questoes = [];
     Object.keys(gabaritoUnificado).map(Number).sort((a,b)=>a-b).forEach(q => {
+        if(questaoAnulada(gabaritoUnificado[q])) return;
+
         const marcadas = respostas[q] || [];
         const taxas = confianca[q] || {};
         const ranking = Object.entries(taxas).sort((a,b)=>b[1]-a[1]);
@@ -389,21 +395,21 @@ async function finalizarCorrecao(respAluno, gabaritoUnificado, nomeAluno, notaRe
                     const duplaMarcacao = marcadas.length > 1;
                     const alu = marcadas.length === 1 ? marcadas[0] : undefined;
                     const prof = gabaritoUnificado[q];
-                    const isNula = (prof === 'N' || prof === 'X');
+                    const isNula = questaoAnulada(prof);
 
-                    if (duplaMarcacao) {
+                    if (isNula) {
+                        acertosM++;
+                        const todasOpcoesQ = configAtual.mapa.filter(m => m.questao == q);
+                        todasOpcoesQ.forEach(zOp => { ctx.lineWidth = 3; ctx.strokeStyle = "#007bff"; ctx.strokeRect(zOp.x-(zOp.w/2), zOp.y-(zOp.h/2), zOp.w, zOp.h); });
+                        if(alu) { const zAlu = configAtual.mapa.find(m => m.questao==q && m.alt==alu); if(zAlu) { ctx.lineWidth = 6; ctx.strokeStyle = "#007bff"; ctx.strokeRect(zAlu.x-(zAlu.w/2), zAlu.y-(zAlu.h/2), zAlu.w, zAlu.h); } }
+                    } else if (duplaMarcacao) {
                         // Mais de uma alternativa marcada na mesma questão = errada automaticamente
                         marcadas.forEach(letraMarcada => {
                             const zDup = configAtual.mapa.find(m => m.questao==q && m.alt==letraMarcada);
                             if(zDup) { ctx.lineWidth = 5; ctx.strokeStyle = "#c62828"; ctx.strokeRect(zDup.x-(zDup.w/2), zDup.y-(zDup.h/2), zDup.w, zDup.h); }
                         });
                         errosDoAluno.push(q);
-                        if(prof && !isNula) { const zC = configAtual.mapa.find(m => m.questao==q && m.alt==prof); if(zC) { ctx.lineWidth=4; ctx.strokeStyle="#ffc107"; ctx.strokeRect(zC.x-(zC.w/2), zC.y-(zC.h/2), zC.w, zC.h); } }
-                    } else if (isNula) {
-                        acertosM++; 
-                        const todasOpcoesQ = configAtual.mapa.filter(m => m.questao == q);
-                        todasOpcoesQ.forEach(zOp => { ctx.lineWidth = 3; ctx.strokeStyle = "#007bff"; ctx.strokeRect(zOp.x-(zOp.w/2), zOp.y-(zOp.h/2), zOp.w, zOp.h); });
-                        if(alu) { const zAlu = configAtual.mapa.find(m => m.questao==q && m.alt==alu); if(zAlu) { ctx.lineWidth = 6; ctx.strokeStyle = "#007bff"; ctx.strokeRect(zAlu.x-(zAlu.w/2), zAlu.y-(zAlu.h/2), zAlu.w, zAlu.h); } }
+                        if(prof) { const zC = configAtual.mapa.find(m => m.questao==q && m.alt==prof); if(zC) { ctx.lineWidth=4; ctx.strokeStyle="#ffc107"; ctx.strokeRect(zC.x-(zC.w/2), zC.y-(zC.h/2), zC.w, zC.h); } }
                     } else {
                         if(alu) { 
                             const z = configAtual.mapa.find(m => m.questao==q && m.alt==alu); 
